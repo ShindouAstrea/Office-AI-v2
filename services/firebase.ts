@@ -14,7 +14,7 @@ const firebaseConfig = {
   messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.FIREBASE_APP_ID
 };
-console.table(firebaseConfig);
+console.log(JSON.stringify(process.env));
 let db: any = null;
 
 try {
@@ -25,7 +25,6 @@ try {
       const app = initializeApp(firebaseConfig);
       db = getFirestore(app);
   } else {
-    console.log(firebaseConfig);
       console.warn("Firebase credentials missing. App running in Offline/Memory Mode. desuwa");
   }
 } catch (error) {
