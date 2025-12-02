@@ -20,11 +20,13 @@ let db: any = null;
 try {
   // Only initialize if we seem to have a valid config (check for API KEY)
   if (process.env.FIREBASE_API_KEY) {
+ console.log(firebaseConfig);
+      console.warn("Firebase credentials missing. App running in Offline/Memory Mode. desu");
       const app = initializeApp(firebaseConfig);
       db = getFirestore(app);
   } else {
     console.log(firebaseConfig);
-      console.warn("Firebase credentials missing. App running in Offline/Memory Mode. desu");
+      console.warn("Firebase credentials missing. App running in Offline/Memory Mode.");
   }
 } catch (error) {
   console.error("Error initializing Firebase:", error);
