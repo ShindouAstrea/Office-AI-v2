@@ -76,7 +76,7 @@ const AvatarCreator: React.FC<AvatarCreatorProps> = ({ onJoin }) => {
 
         <form onSubmit={handleJoin} className="space-y-6">
           <div>
-            <label className="block text-xs font-bold text-gray-400 mb-2 uppercase">Character Name</label>
+            <label className="block text-xs font-bold text-gray-400 mb-2 uppercase">NickName</label>
             <input
               type="text"
               value={name}
@@ -114,7 +114,7 @@ const AvatarCreator: React.FC<AvatarCreatorProps> = ({ onJoin }) => {
               className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-4 border-b-4 border-indigo-800 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Check size={20} />
-              JOIN WORLD
+              Unirse
             </button>
           </div>
         </form>

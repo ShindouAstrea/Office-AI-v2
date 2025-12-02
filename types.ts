@@ -52,8 +52,3 @@ export interface GameState {
   chatHistory: ChatMessage[];
   mode: 'PLAY' | 'BUILD' | 'LOBBY';
 }
-
-export interface AIResponseState {
-    text: string;
-    loading: boolean;
-}
