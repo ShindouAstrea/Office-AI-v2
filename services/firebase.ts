@@ -40,7 +40,7 @@ const DOCS = {
 // --- API ---
 
 export const loadFurnitureMap = async (): Promise<Furniture[] | null> => {
-  if (!db) return null; // Graceful fallback
+  if (!db) return null; // Graceful fallback, do not throw
   
   try {
     const docRef = doc(db, COLLECTIONS.OFFICE, DOCS.MAIN_MAP);

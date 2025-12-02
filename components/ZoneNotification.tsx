@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { MapPin } from 'lucide-react';
+import { MapPin, AlertTriangle } from 'lucide-react';
 
 interface ZoneNotificationProps {
   message: string | null;
+  type?: 'info' | 'error';
 }
 
-const ZoneNotification: React.FC<ZoneNotificationProps> = ({ message }) => {
+const ZoneNotification: React.FC<ZoneNotificationProps> = ({ message, type = 'info' }) => {
   const [visible, setVisible] = useState(false);
   const [displayMessage, setDisplayMessage] = useState('');
 
@@ -18,14 +19,21 @@ const ZoneNotification: React.FC<ZoneNotificationProps> = ({ message }) => {
     }
   }, [message]);
 
+  const isError = type === 'error';
+
   return (
     <div 
       className={`fixed top-8 left-1/2 transform -translate-x-1/2 z-50 transition-all duration-500 ease-in-out ${
         visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'
       }`}
     >
-      <div className="bg-gray-900/60 backdrop-blur-md text-white px-6 py-3 rounded-full shadow-2xl border border-white/10 flex items-center gap-3">
-        <MapPin size={18} className="text-indigo-400" />
+      <div className={`
+        backdrop-blur-md px-6 py-3 rounded-full shadow-2xl border flex items-center gap-3
+        ${isError 
+            ? 'bg-red-900/80 border-red-500/50 text-red-100' 
+            : 'bg-gray-900/60 border-white/10 text-white'}
+      `}>
+        {isError ? <AlertTriangle size={18} className="text-red-400" /> : <MapPin size={18} className="text-indigo-400" />}
         <span className="font-medium tracking-wide text-sm">{displayMessage}</span>
       </div>
     </div>
