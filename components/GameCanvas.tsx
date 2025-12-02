@@ -69,6 +69,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
              
              // Find nearest interactive item
              const nearbyItem = furnitureRef.current.find(item => {
+                 if (!item.position) return false;
                  if (item.type !== FurnitureType.COFFEE_MAKER && 
                      item.type !== FurnitureType.SINK && 
                      item.type !== FurnitureType.SCREEN) return false;
@@ -144,6 +145,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const checkCollision = (x: number, y: number): boolean => {
     // Check furniture
     for (const item of furniture) {
+        if (!item.position) continue;
+        
         // Skip walkable items
         if (item.type === FurnitureType.FLOOR || 
             item.type === FurnitureType.CHAIR || 
@@ -307,7 +310,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         const zone = MAP_ZONES.find(z => c >= z.x && c < z.x + z.w && r >= z.y && r < z.y + z.h);
         
         // Draw placed floors first
-        const floorItem = furniture.find(f => f.type === FurnitureType.FLOOR && f.position.x === c && f.position.y === r);
+        const floorItem = furniture.find(f => f.type === FurnitureType.FLOOR && f.position && f.position.x === c && f.position.y === r);
         
         if (floorItem) {
              if (floorItem.variant === 0) { // Wood
@@ -346,6 +349,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     
     // 2.5 Draw Rugs (Decoration layer before main entities)
     furniture.forEach(f => {
+        if (!f.position) return;
         if (f.type === FurnitureType.RUG) {
             const x = f.position.x * TILE_SIZE;
             const y = f.position.y * TILE_SIZE;
@@ -374,7 +378,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
     // 3. Sort and Draw Entities
     const renderables = [
-        ...furniture.filter(f => f.type !== FurnitureType.RUG && f.type !== FurnitureType.FLOOR).map(f => ({ type: 'furniture', data: f, y: f.position.y * TILE_SIZE })),
+        ...furniture.filter(f => f.position && f.type !== FurnitureType.RUG && f.type !== FurnitureType.FLOOR).map(f => ({ type: 'furniture', data: f, y: f.position.y * TILE_SIZE })),
         ...peers.map(p => ({ type: 'peer', data: p, y: p.position.y })),
         { type: 'player', data: currentUser, y: currentPosRef.current.y }
     ];
@@ -385,6 +389,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     renderables.forEach(item => {
         if (item.type === 'furniture') {
             const f = item.data as Furniture;
+            if (!f.position) return;
             const x = f.position.x * TILE_SIZE;
             const y = f.position.y * TILE_SIZE;
 
@@ -641,6 +646,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     let minDst = Infinity;
     
     furniture.forEach(item => {
+        if (!item.position) return;
         if (item.type === FurnitureType.COFFEE_MAKER || 
             item.type === FurnitureType.SINK || 
             item.type === FurnitureType.SCREEN) {

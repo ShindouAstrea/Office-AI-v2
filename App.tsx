@@ -77,7 +77,17 @@ const App: React.FC = () => {
               loadChatRooms()
           ]);
 
-          if (remoteFurniture) setFurniture(remoteFurniture);
+          if (remoteFurniture && Array.isArray(remoteFurniture)) {
+              // SANITIZATION: Filter out items with missing positions to prevent crashes
+              const validFurniture = remoteFurniture.filter(f => 
+                  f && f.position && typeof f.position.x === 'number' && typeof f.position.y === 'number'
+              );
+              // Only update if we have valid data (or empty array implies intentional clear, but we keep initial if empty to be safe initially)
+              if (validFurniture.length > 0 || remoteFurniture.length === 0) {
+                  setFurniture(validFurniture);
+              }
+          }
+          
           if (remoteChat) setMessages(remoteChat);
           
           if (remoteRooms && remoteRooms.length > 0) {

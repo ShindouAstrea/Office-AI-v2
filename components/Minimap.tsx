@@ -36,6 +36,7 @@ const Minimap: React.FC<MinimapProps> = ({ furniture, peers, currentUser }) => {
 
     // Draw Walls and Structures (Static)
     furniture.forEach(item => {
+      if (!item.position) return;
       if (item.type === FurnitureType.WALL) {
         ctx.fillStyle = '#6b7280'; // Gray-500
         ctx.fillRect(
