@@ -1,11 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Player, Furniture, ChatMessage, Position, FurnitureType } from './types';
-import { INITIAL_FURNITURE, TILE_SIZE, AVATAR_COLORS } from './constants';
+import { 
+  INITIAL_FURNITURE, TILE_SIZE, AVATAR_COLORS, 
+  KITCHEN_ZONE, BATHROOM_ZONE, OFFICE_1_ZONE, OFFICE_2_ZONE 
+} from './constants';
 import GameCanvas from './components/GameCanvas';
 import AvatarCreator from './components/AvatarCreator';
 import ChatWidget from './components/ChatWidget';
 import ControlBar from './components/ControlBar';
 import VideoOverlay from './components/VideoOverlay';
+import ZoneNotification from './components/ZoneNotification';
+import ParticipantsMenu from './components/ParticipantsMenu';
+import BuildMenu from './components/BuildMenu';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<Player | null>(null);
@@ -13,19 +19,24 @@ const App: React.FC = () => {
   const [furniture, setFurniture] = useState<Furniture[]>(INITIAL_FURNITURE);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [buildMode, setBuildMode] = useState(false);
+  const [selectedFurnitureType, setSelectedFurnitureType] = useState<FurnitureType>(FurnitureType.DESK);
   const [interactionTarget, setInteractionTarget] = useState<string | null>(null);
+  const [notification, setNotification] = useState<string | null>(null);
   
-  // Chat State
+  // UI State
   const [chatVisible, setChatVisible] = useState(true);
+  const [usersMenuVisible, setUsersMenuVisible] = useState(false);
   
   // Media State
   const [micOn, setMicOn] = useState(false);
-  const [camOn, setCamOn] = useState(false);
   const [sharingScreen, setSharingScreen] = useState(false);
+
+  // Refs for tracking changes
+  const lastRoomRef = useRef<string>('OPEN_SPACE');
+  const notificationTimeoutRef = useRef<number | null>(null);
 
   // Media Streams (Refs to hold stream objects without re-renders)
   const localMicStreamRef = useRef<MediaStream | null>(null);
-  const localCamStreamRef = useRef<MediaStream | null>(null);
   const localScreenStreamRef = useRef<MediaStream | null>(null);
 
   // Simulate peers moving
@@ -34,8 +45,8 @@ const App: React.FC = () => {
 
     // Create some fake peers initially
     const fakePeers: Player[] = [
-        { id: 'p2', name: 'David', color: AVATAR_COLORS[1], position: { x: 400, y: 300 }, targetPosition: { x: 400, y: 300 }, isTalking: false, avatarId: 1 },
-        { id: 'p3', name: 'Sarah', color: AVATAR_COLORS[2], position: { x: 600, y: 500 }, targetPosition: { x: 600, y: 500 }, isTalking: true, avatarId: 1 },
+        { id: 'p2', name: 'David', color: AVATAR_COLORS[1], position: { x: 400, y: 300 }, targetPosition: { x: 400, y: 300 }, isTalking: false, avatarId: 1, room: 'OPEN_SPACE', status: 'En línea' },
+        { id: 'p3', name: 'Sarah', color: AVATAR_COLORS[2], position: { x: 600, y: 500 }, targetPosition: { x: 600, y: 500 }, isTalking: true, avatarId: 1, room: 'OPEN_SPACE', status: 'Ocupado' },
     ];
     setPeers(fakePeers);
 
@@ -50,7 +61,72 @@ const App: React.FC = () => {
     }, 100);
 
     return () => clearInterval(interval);
-  }, [currentUser]);
+  }, [currentUser?.id]); // Only run once on mount/user creation
+
+
+  // --- ZONE LOGIC & NOTIFICATIONS ---
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const { x, y } = currentUser.position;
+    const gridX = Math.floor(x / TILE_SIZE);
+    const gridY = Math.floor(y / TILE_SIZE);
+
+    let currentRoomId = 'OPEN_SPACE';
+    let roomName = 'Espacio Común';
+    
+    // Check Zones
+    const inZone = (z: {x:number, y:number, w:number, h:number}) => 
+        gridX >= z.x && gridX < z.x + z.w && gridY >= z.y && gridY < z.y + z.h;
+
+    if (inZone(KITCHEN_ZONE)) {
+        currentRoomId = 'KITCHEN';
+        roomName = 'Cafetería';
+    } else if (inZone(BATHROOM_ZONE)) {
+        currentRoomId = 'BATHROOM';
+        roomName = 'Baños';
+    } else if (inZone(OFFICE_1_ZONE)) {
+        currentRoomId = 'OFFICE_1';
+        roomName = 'Oficina Privada 1';
+    } else if (inZone(OFFICE_2_ZONE)) {
+        currentRoomId = 'OFFICE_2';
+        roomName = 'Oficina de Desarrollo';
+    }
+
+    // Auto-status logic ONLY if moving into specific functional rooms
+    let autoStatus = currentUser.status;
+    if (currentUser.room !== currentRoomId) {
+        if (currentRoomId === 'KITCHEN') autoStatus = 'Almorzando';
+        else if (currentRoomId === 'BATHROOM') autoStatus = 'En el baño';
+        else if (lastRoomRef.current === 'KITCHEN' || lastRoomRef.current === 'BATHROOM') autoStatus = 'En línea';
+        
+        // Auto-mute check
+        if ((currentRoomId === 'KITCHEN' || currentRoomId === 'BATHROOM') && micOn) {
+           handleToggleMic();
+        }
+        
+        setCurrentUser(prev => prev ? { ...prev, room: currentRoomId, status: autoStatus } : null);
+    }
+
+
+    // Notifications logic
+    if (currentRoomId !== lastRoomRef.current) {
+        if (notificationTimeoutRef.current) window.clearTimeout(notificationTimeoutRef.current);
+        
+        const text = currentRoomId === 'OPEN_SPACE' 
+            ? `Has ingresado al ${roomName}` 
+            : `Has ingresado a: ${roomName}`;
+            
+        setNotification(text);
+        
+        notificationTimeoutRef.current = window.setTimeout(() => {
+            setNotification(null);
+        }, 3000);
+
+        lastRoomRef.current = currentRoomId;
+    }
+
+  }, [currentUser?.position, micOn]); // Depend on position and mic status
 
 
   const handleJoin = (playerData: Partial<Player>) => {
@@ -58,16 +134,24 @@ const App: React.FC = () => {
       id: 'me',
       name: playerData.name || 'User',
       color: playerData.color || AVATAR_COLORS[0],
-      position: { x: 10 * TILE_SIZE, y: 10 * TILE_SIZE }, // Start pos
-      targetPosition: { x: 10 * TILE_SIZE, y: 10 * TILE_SIZE },
+      position: { x: 20 * TILE_SIZE + TILE_SIZE/2, y: 28 * TILE_SIZE + TILE_SIZE/2 }, 
+      targetPosition: { x: 20 * TILE_SIZE, y: 28 * TILE_SIZE },
       isTalking: false,
-      avatarId: 1
+      avatarId: 1,
+      room: 'OPEN_SPACE',
+      status: 'En línea'
     });
+  };
+
+  const handleUpdateStatus = (newStatus: string) => {
+    if (currentUser) {
+      setCurrentUser({ ...currentUser, status: newStatus });
+    }
   };
 
   const handleMove = (newPos: Position) => {
     if (currentUser) {
-        setCurrentUser({ ...currentUser, position: newPos });
+        setCurrentUser(prev => prev ? { ...prev, position: newPos } : null);
     }
   };
 
@@ -90,53 +174,40 @@ const App: React.FC = () => {
 
   const handlePlaceFurniture = (pos: Position) => {
       if (!buildMode) return;
-      const newFurn: Furniture = {
-          id: `f-${Date.now()}`,
-          type: FurnitureType.PLANT, // Default to plant for demo
-          position: pos,
-          rotation: 0
-      };
-      setFurniture(prev => [...prev, newFurn]);
+
+      if (selectedFurnitureType === FurnitureType.DELETE) {
+          // Remove furniture at this position
+          setFurniture(prev => prev.filter(f => f.position.x !== pos.x || f.position.y !== pos.y));
+      } else {
+          // Place new furniture (optional: replace existing)
+          // First remove any item at same spot to prevent stacking
+          setFurniture(prev => {
+              const filtered = prev.filter(f => f.position.x !== pos.x || f.position.y !== pos.y);
+              const newFurn: Furniture = {
+                  id: `f-${Date.now()}`,
+                  type: selectedFurnitureType, 
+                  position: pos,
+                  rotation: 0
+              };
+              return [...filtered, newFurn];
+          });
+      }
   };
 
   const handleToggleMic = async () => {
     if (micOn) {
-        // Turn off
         if (localMicStreamRef.current) {
             localMicStreamRef.current.getTracks().forEach(track => track.stop());
             localMicStreamRef.current = null;
         }
         setMicOn(false);
     } else {
-        // Turn on
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             localMicStreamRef.current = stream;
             setMicOn(true);
         } catch (error) {
             console.error("Microphone access denied:", error);
-            alert("Could not access microphone. Please check your browser permissions.");
-        }
-    }
-  };
-
-  const handleToggleCam = async () => {
-    if (camOn) {
-        // Turn off
-        if (localCamStreamRef.current) {
-            localCamStreamRef.current.getTracks().forEach(track => track.stop());
-            localCamStreamRef.current = null;
-        }
-        setCamOn(false);
-    } else {
-        // Turn on
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            localCamStreamRef.current = stream;
-            setCamOn(true);
-        } catch (error) {
-            console.error("Camera access denied:", error);
-            alert("Could not access camera. Please check your browser permissions.");
         }
     }
   };
@@ -153,8 +224,6 @@ const App: React.FC = () => {
             const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
             localScreenStreamRef.current = stream;
             setSharingScreen(true);
-            
-            // Handle user stopping share from browser UI
             stream.getVideoTracks()[0].onended = () => {
                 setSharingScreen(false);
                 localScreenStreamRef.current = null;
@@ -182,25 +251,46 @@ const App: React.FC = () => {
             onPlaceFurniture={handlePlaceFurniture}
         />
 
+        {/* Notifications */}
+        <ZoneNotification message={notification} />
+
         {/* HUD Elements */}
-        <VideoOverlay peers={peers} currentUserPos={currentUser.position} camOn={camOn} />
+        <VideoOverlay peers={peers} currentUserPos={currentUser.position} />
         
+        {buildMode && (
+          <BuildMenu 
+            selectedType={selectedFurnitureType}
+            onSelect={setSelectedFurnitureType}
+          />
+        )}
+
         <ControlBar 
-            micOn={micOn} camOn={camOn} sharingScreen={sharingScreen} buildMode={buildMode}
+            micOn={micOn} sharingScreen={sharingScreen} buildMode={buildMode}
             chatVisible={chatVisible}
+            usersMenuVisible={usersMenuVisible}
             onToggleMic={handleToggleMic}
-            onToggleCam={handleToggleCam}
             onToggleScreen={handleToggleScreen}
             onToggleBuild={() => setBuildMode(!buildMode)}
             onToggleChat={() => setChatVisible(!chatVisible)}
+            onToggleUsers={() => setUsersMenuVisible(!usersMenuVisible)}
         />
 
+        {/* Side Panels */}
         <div className={chatVisible ? '' : 'hidden'}>
             <ChatWidget 
                 messages={messages}
                 onSendMessage={handleSendMessage}
             />
         </div>
+
+        {usersMenuVisible && (
+          <ParticipantsMenu 
+            currentUser={currentUser}
+            peers={peers}
+            onUpdateStatus={handleUpdateStatus}
+            onClose={() => setUsersMenuVisible(false)}
+          />
+        )}
     </div>
   );
 };

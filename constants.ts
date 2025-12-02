@@ -1,94 +1,171 @@
-import { Furniture, FurnitureType } from "./types";
+import { Furniture, FurnitureType, MapZone } from "./types";
 
 export const TILE_SIZE = 48;
-export const MOVE_SPEED = 6; // Slightly faster for better traversal
-export const SPATIAL_AUDIO_RADIUS = 300; // Pixels
-export const INTERACTION_RADIUS = 80; // Pixels
+export const MOVE_SPEED = 6;
+export const SPATIAL_AUDIO_RADIUS = 300;
+export const INTERACTION_RADIUS = 80;
 
 export const MAP_WIDTH = 40; // Tiles
 export const MAP_HEIGHT = 30; // Tiles
 
 export const AVATAR_COLORS = [
-  '#ff6b6b', // Coral Red
-  '#48dbfb', // Bright Cyan
-  '#1dd1a1', // Wild Caribbean Green
-  '#feca57', // Casandora Yellow
-  '#5f27cd', // Nasu Purple
-  '#ff9ff3', // Jigglypuff Pink
-  '#ff9f43', // Double Dragon Orange
-  '#54a0ff', // Jim Jam Blue
+  '#ff6b6b', '#48dbfb', '#1dd1a1', '#feca57', '#5f27cd', '#ff9ff3', '#ff9f43', '#54a0ff'
 ];
 
-// Helper to create walls easily
-const createWallRect = (x: number, y: number, width: number, height: number): Furniture[] => {
+// Zones for Logic (Muting & Notifications)
+export const KITCHEN_ZONE = { x: 2, y: 2, w: 10, h: 10 };
+export const BATHROOM_ZONE = { x: 28, y: 2, w: 10, h: 8 };
+export const OFFICE_1_ZONE = { x: 2, y: 18, w: 10, h: 10 };
+export const OFFICE_2_ZONE = { x: 28, y: 18, w: 10, h: 10 };
+
+// Zones for Rendering (Floor styles)
+export const MAP_ZONES: MapZone[] = [
+    { ...KITCHEN_ZONE, type: 'KITCHEN' },
+    { ...BATHROOM_ZONE, type: 'BATHROOM' },
+    { ...OFFICE_1_ZONE, type: 'OFFICE' },
+    { ...OFFICE_2_ZONE, type: 'OFFICE' }
+];
+
+// Helper: Create walls with optional door gaps
+const createRoom = (x: number, y: number, w: number, h: number, doorSide: 'top'|'bottom'|'left'|'right', doorPos: number): Furniture[] => {
     const walls: Furniture[] = [];
-    // Top & Bottom
-    for (let i = 0; i < width; i++) {
-        walls.push({ id: `wall-t-${x+i}-${y}`, type: FurnitureType.WALL, position: { x: x + i, y: y }, rotation: 0 });
-        walls.push({ id: `wall-b-${x+i}-${y+height-1}`, type: FurnitureType.WALL, position: { x: x + i, y: y + height - 1 }, rotation: 0 });
+    
+    // Top
+    for(let i=0; i<w; i++) {
+        if (doorSide === 'top' && i === doorPos) continue; // Door gap
+        walls.push({ id: `w-t-${x+i}-${y}`, type: FurnitureType.WALL, position: {x: x+i, y}, rotation: 0});
     }
-    // Left & Right (excluding corners already added)
-    for (let i = 1; i < height - 1; i++) {
-        walls.push({ id: `wall-l-${x}-${y+i}`, type: FurnitureType.WALL, position: { x: x, y: y + i }, rotation: 0 });
-        walls.push({ id: `wall-r-${x+width-1}-${y+i}`, type: FurnitureType.WALL, position: { x: x + width - 1, y: y + i }, rotation: 0 });
+    // Bottom
+    for(let i=0; i<w; i++) {
+        if (doorSide === 'bottom' && i === doorPos) continue;
+        walls.push({ id: `w-b-${x+i}-${y+h-1}`, type: FurnitureType.WALL, position: {x: x+i, y: y+h-1}, rotation: 0});
+    }
+    // Left
+    for(let i=1; i<h-1; i++) {
+        if (doorSide === 'left' && i === doorPos) continue;
+        walls.push({ id: `w-l-${x}-${y+i}`, type: FurnitureType.WALL, position: {x, y: y+i}, rotation: 0});
+    }
+    // Right
+    for(let i=1; i<h-1; i++) {
+        if (doorSide === 'right' && i === doorPos) continue;
+        walls.push({ id: `w-r-${x+w-1}-${y+i}`, type: FurnitureType.WALL, position: {x: x+w-1, y: y+i}, rotation: 0});
     }
     return walls;
 };
 
-const officeWalls = createWallRect(2, 2, 36, 26);
+// --- LAYOUT GENERATION ---
+const outerWalls = createRoom(0, 0, MAP_WIDTH, MAP_HEIGHT, 'bottom', 20); // Main building with entrance at bottom
 
-// Initial mock furniture
+// 1. Kitchen (Top Left)
+const kitchenWalls = createRoom(KITCHEN_ZONE.x, KITCHEN_ZONE.y, KITCHEN_ZONE.w, KITCHEN_ZONE.h, 'right', 5);
+
+// 2. Bathroom (Top Right)
+const bathroomWalls = createRoom(BATHROOM_ZONE.x, BATHROOM_ZONE.y, BATHROOM_ZONE.w, BATHROOM_ZONE.h, 'left', 4);
+// Bathroom Stalls (Internal Walls)
+const stallWalls: Furniture[] = [
+    { id: 'stall-1', type: FurnitureType.WALL, position: {x: 32, y: 2}, rotation: 0 },
+    { id: 'stall-1b', type: FurnitureType.WALL, position: {x: 32, y: 3}, rotation: 0 },
+    { id: 'stall-2', type: FurnitureType.WALL, position: {x: 35, y: 2}, rotation: 0 },
+    { id: 'stall-2b', type: FurnitureType.WALL, position: {x: 35, y: 3}, rotation: 0 },
+];
+
+// 3. Private Office 1 (Bottom Left)
+const office1Walls = createRoom(OFFICE_1_ZONE.x, OFFICE_1_ZONE.y, OFFICE_1_ZONE.w, OFFICE_1_ZONE.h, 'right', 4);
+
+// 4. Private Office 2 (Bottom Right)
+const office2Walls = createRoom(OFFICE_2_ZONE.x, OFFICE_2_ZONE.y, OFFICE_2_ZONE.w, OFFICE_2_ZONE.h, 'left', 4);
+
+
 export const INITIAL_FURNITURE: Furniture[] = [
-    // --- ZONES (Rugs) ---
-    // Meeting Area Rug (Blueish)
-    { id: 'rug-meeting', type: FurnitureType.FLOOR, position: { x: 25, y: 5 }, rotation: 90 }, 
+    ...outerWalls,
+    ...kitchenWalls,
+    ...bathroomWalls,
+    ...stallWalls,
+    ...office1Walls,
+    ...office2Walls,
+
+    // --- KITCHEN ITEMS ---
+    // Counter / Service Area (Top Wall)
+    { id: 'k-coffee-1', type: FurnitureType.COFFEE_MAKER, position: {x: 3, y: 2}, rotation: 0 },
+    { id: 'k-food-counter', type: FurnitureType.FOOD, position: {x: 4, y: 2}, rotation: 0 },
+    { id: 'k-coffee-2', type: FurnitureType.COFFEE_MAKER, position: {x: 5, y: 2}, rotation: 0 },
+    { id: 'k-sink-1', type: FurnitureType.SINK, position: {x: 7, y: 2}, rotation: 0 },
+    { id: 'k-sink-2', type: FurnitureType.SINK, position: {x: 8, y: 2}, rotation: 0 },
+
+    // Dining Table 1 (Top Left)
+    { id: 'k-table-1', type: FurnitureType.TABLE_ROUND, position: {x: 4, y: 5}, rotation: 0 },
+    { id: 'k-food-1', type: FurnitureType.FOOD, position: {x: 4, y: 5}, rotation: 0 }, // Pizza on table
+    { id: 'k-chair-1-n', type: FurnitureType.CHAIR, position: {x: 4, y: 4}, rotation: 180 },
+    { id: 'k-chair-1-s', type: FurnitureType.CHAIR, position: {x: 4, y: 6}, rotation: 0 },
+    { id: 'k-chair-1-w', type: FurnitureType.CHAIR, position: {x: 3, y: 5}, rotation: 90 },
+    { id: 'k-chair-1-e', type: FurnitureType.CHAIR, position: {x: 5, y: 5}, rotation: 270 },
+
+    // Dining Table 2 (Top Right)
+    { id: 'k-table-2', type: FurnitureType.TABLE_ROUND, position: {x: 9, y: 5}, rotation: 0 },
+    { id: 'k-food-2', type: FurnitureType.FOOD, position: {x: 9, y: 5}, rotation: 0 },
+    { id: 'k-chair-2-n', type: FurnitureType.CHAIR, position: {x: 9, y: 4}, rotation: 180 },
+    { id: 'k-chair-2-s', type: FurnitureType.CHAIR, position: {x: 9, y: 6}, rotation: 0 },
+    { id: 'k-chair-2-w', type: FurnitureType.CHAIR, position: {x: 8, y: 5}, rotation: 90 },
+    { id: 'k-chair-2-e', type: FurnitureType.CHAIR, position: {x: 10, y: 5}, rotation: 270 },
+
+    // Dining Table 3 (Bottom Center)
+    { id: 'k-table-3', type: FurnitureType.TABLE_ROUND, position: {x: 6, y: 9}, rotation: 0 },
+    { id: 'k-chair-3-n', type: FurnitureType.CHAIR, position: {x: 6, y: 8}, rotation: 180 },
+    { id: 'k-chair-3-s', type: FurnitureType.CHAIR, position: {x: 6, y: 10}, rotation: 0 },
+    { id: 'k-chair-3-w', type: FurnitureType.CHAIR, position: {x: 5, y: 9}, rotation: 90 },
+    { id: 'k-chair-3-e', type: FurnitureType.CHAIR, position: {x: 7, y: 9}, rotation: 270 },
     
-    // Work Area Rug (Subtle)
-    { id: 'rug-work', type: FurnitureType.FLOOR, position: { x: 5, y: 5 }, rotation: 0 },
+    // Decor
+    { id: 'k-plant-1', type: FurnitureType.PLANT, position: {x: 2, y: 11}, rotation: 0 },
 
-    // Lounge Area Rug (Reddish)
-    { id: 'rug-lounge', type: FurnitureType.FLOOR, position: { x: 25, y: 18 }, rotation: 180 },
+    // --- BATHROOM ITEMS ---
+    { id: 'b-sink-1', type: FurnitureType.SINK, position: {x: 30, y: 8}, rotation: 0 },
+    { id: 'b-sink-2', type: FurnitureType.SINK, position: {x: 32, y: 8}, rotation: 0 },
+    { id: 'b-toilet-1', type: FurnitureType.TOILET, position: {x: 30, y: 3}, rotation: 0 },
+    { id: 'b-toilet-2', type: FurnitureType.TOILET, position: {x: 33, y: 3}, rotation: 0 },
+    { id: 'b-toilet-3', type: FurnitureType.TOILET, position: {x: 36, y: 3}, rotation: 0 },
 
-    // --- WALLS ---
-    ...officeWalls,
+    // --- OFFICE 1 (Manager) ---
+    { id: 'o1-desk', type: FurnitureType.DESK, position: {x: 6, y: 22}, rotation: 0 },
+    { id: 'o1-chair', type: FurnitureType.CHAIR, position: {x: 6, y: 23}, rotation: 0 },
+    { id: 'o1-plant', type: FurnitureType.PLANT, position: {x: 3, y: 19}, rotation: 0 },
+    { id: 'o1-screen', type: FurnitureType.SCREEN, position: {x: 6, y: 22}, rotation: 0 },
 
-    // --- WORK AREA ---
-    // Desk Cluster 1
-    { id: 'desk-1', type: FurnitureType.DESK, position: { x: 6, y: 8 }, rotation: 0 },
-    { id: 'chair-1', type: FurnitureType.CHAIR, position: { x: 6, y: 9 }, rotation: 0 },
-    { id: 'desk-2', type: FurnitureType.DESK, position: { x: 8, y: 8 }, rotation: 0 },
-    { id: 'chair-2', type: FurnitureType.CHAIR, position: { x: 8, y: 9 }, rotation: 0 },
-    
-    // Desk Cluster 2
-    { id: 'desk-3', type: FurnitureType.DESK, position: { x: 6, y: 12 }, rotation: 0 },
-    { id: 'chair-3', type: FurnitureType.CHAIR, position: { x: 6, y: 13 }, rotation: 0 },
-    { id: 'desk-4', type: FurnitureType.DESK, position: { x: 8, y: 12 }, rotation: 0 },
-    { id: 'chair-4', type: FurnitureType.CHAIR, position: { x: 8, y: 13 }, rotation: 0 },
+    // --- OFFICE 2 (Dev) ---
+    { id: 'o2-desk', type: FurnitureType.DESK, position: {x: 32, y: 22}, rotation: 0 },
+    { id: 'o2-chair', type: FurnitureType.CHAIR, position: {x: 32, y: 23}, rotation: 0 },
+    { id: 'o2-screen', type: FurnitureType.SCREEN, position: {x: 32, y: 22}, rotation: 0 },
 
-    // Manager Desk
-    { id: 'desk-mgr', type: FurnitureType.DESK, position: { x: 12, y: 10 }, rotation: 0 },
-    { id: 'chair-mgr', type: FurnitureType.CHAIR, position: { x: 13, y: 10 }, rotation: 270 }, // Facing left
-    { id: 'plant-mgr', type: FurnitureType.PLANT, position: { x: 12, y: 8 }, rotation: 0 },
+    // --- MAIN HALL (Open Space) ---
+    // Island 1
+    { id: 'm-desk-1', type: FurnitureType.DESK, position: {x: 16, y: 10}, rotation: 0 },
+    { id: 'm-screen-1', type: FurnitureType.SCREEN, position: {x: 16, y: 10}, rotation: 0 },
+    { id: 'm-chair-1', type: FurnitureType.CHAIR, position: {x: 16, y: 11}, rotation: 0 },
 
-    // --- MEETING AREA (Top Right) ---
-    // Large Table constructed of desks
-    { id: 'meet-1', type: FurnitureType.DESK, position: { x: 28, y: 8 }, rotation: 0 },
-    { id: 'meet-2', type: FurnitureType.DESK, position: { x: 29, y: 8 }, rotation: 0 },
-    { id: 'meet-3', type: FurnitureType.DESK, position: { x: 28, y: 9 }, rotation: 0 },
-    { id: 'meet-4', type: FurnitureType.DESK, position: { x: 29, y: 9 }, rotation: 0 },
-    // Chairs around
-    { id: 'chair-m1', type: FurnitureType.CHAIR, position: { x: 27, y: 8 }, rotation: 90 },
-    { id: 'chair-m2', type: FurnitureType.CHAIR, position: { x: 27, y: 9 }, rotation: 90 },
-    { id: 'chair-m3', type: FurnitureType.CHAIR, position: { x: 30, y: 8 }, rotation: 270 },
-    { id: 'chair-m4', type: FurnitureType.CHAIR, position: { x: 30, y: 9 }, rotation: 270 },
+    { id: 'm-desk-2', type: FurnitureType.DESK, position: {x: 18, y: 10}, rotation: 0 },
+    { id: 'm-screen-2', type: FurnitureType.SCREEN, position: {x: 18, y: 10}, rotation: 0 },
+    { id: 'm-chair-2', type: FurnitureType.CHAIR, position: {x: 18, y: 11}, rotation: 0 },
 
-    // --- LOUNGE / RECEPTION (Bottom Right) ---
-    { id: 'plant-l1', type: FurnitureType.PLANT, position: { x: 25, y: 24 }, rotation: 0 },
-    { id: 'plant-l2', type: FurnitureType.PLANT, position: { x: 33, y: 24 }, rotation: 0 },
-    { id: 'sofa-1', type: FurnitureType.CHAIR, position: { x: 27, y: 22 }, rotation: 0 }, // Using chair as sofa placeholder
-    { id: 'sofa-2', type: FurnitureType.CHAIR, position: { x: 28, y: 22 }, rotation: 0 },
-    { id: 'sofa-3', type: FurnitureType.CHAIR, position: { x: 29, y: 22 }, rotation: 0 },
-    
-    // Reception Desk
-    { id: 'recep-1', type: FurnitureType.DESK, position: { x: 28, y: 19 }, rotation: 0 },
+    { id: 'm-desk-3', type: FurnitureType.DESK, position: {x: 20, y: 10}, rotation: 0 },
+    { id: 'm-screen-3', type: FurnitureType.SCREEN, position: {x: 20, y: 10}, rotation: 0 },
+    { id: 'm-chair-3', type: FurnitureType.CHAIR, position: {x: 20, y: 11}, rotation: 0 },
+
+    // Island 2
+    { id: 'm-desk-4', type: FurnitureType.DESK, position: {x: 16, y: 14}, rotation: 0 },
+    { id: 'm-screen-4', type: FurnitureType.SCREEN, position: {x: 16, y: 14}, rotation: 0 },
+    { id: 'm-chair-4', type: FurnitureType.CHAIR, position: {x: 16, y: 13}, rotation: 180 }, // Facing up
+
+    { id: 'm-desk-5', type: FurnitureType.DESK, position: {x: 18, y: 14}, rotation: 0 },
+    { id: 'm-screen-5', type: FurnitureType.SCREEN, position: {x: 18, y: 14}, rotation: 0 },
+    { id: 'm-chair-5', type: FurnitureType.CHAIR, position: {x: 18, y: 13}, rotation: 180 },
+
+    { id: 'm-desk-6', type: FurnitureType.DESK, position: {x: 20, y: 14}, rotation: 0 },
+    { id: 'm-screen-6', type: FurnitureType.SCREEN, position: {x: 20, y: 14}, rotation: 0 },
+    { id: 'm-chair-6', type: FurnitureType.CHAIR, position: {x: 20, y: 13}, rotation: 180 },
+
+    // Plants for Decoration
+    { id: 'deco-p1', type: FurnitureType.PLANT, position: {x: 14, y: 8}, rotation: 0 },
+    { id: 'deco-p2', type: FurnitureType.PLANT, position: {x: 24, y: 8}, rotation: 0 },
+    { id: 'deco-p3', type: FurnitureType.PLANT, position: {x: 14, y: 16}, rotation: 0 },
+    { id: 'deco-p4', type: FurnitureType.PLANT, position: {x: 24, y: 16}, rotation: 0 },
 ];

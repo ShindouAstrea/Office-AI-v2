@@ -5,10 +5,9 @@ import { SPATIAL_AUDIO_RADIUS } from '../constants';
 interface VideoOverlayProps {
   peers: Player[];
   currentUserPos: Position;
-  camOn: boolean;
 }
 
-const VideoOverlay: React.FC<VideoOverlayProps> = ({ peers, currentUserPos, camOn }) => {
+const VideoOverlay: React.FC<VideoOverlayProps> = ({ peers, currentUserPos }) => {
   
   // Calculate distance
   const getDistance = (p1: Position, p2: Position) => {
@@ -17,19 +16,10 @@ const VideoOverlay: React.FC<VideoOverlayProps> = ({ peers, currentUserPos, camO
 
   const nearbyPeers = peers.filter(p => getDistance(p.position, currentUserPos) < SPATIAL_AUDIO_RADIUS);
 
-  // In a real app, this would map to WebRTC streams.
-  // Here we simulate the "Active Video" UI.
-
+  // Displays indicators for nearby peers (active speakers, etc.)
   return (
     <div className="fixed top-4 right-4 flex flex-col gap-2 z-40 pointer-events-none">
-      {/* Self View */}
-      {camOn && (
-        <div className="w-48 h-32 bg-gray-900 rounded-lg border-2 border-indigo-500 shadow-lg overflow-hidden relative pointer-events-auto">
-             <img src="https://picsum.photos/200/300" alt="Self" className="w-full h-full object-cover opacity-80" />
-             <div className="absolute bottom-1 right-2 text-xs text-white bg-black/50 px-1 rounded">You</div>
-        </div>
-      )}
-
+      
       {/* Peer Views */}
       {nearbyPeers.map(peer => (
         <div key={peer.id} className="w-48 h-32 bg-gray-800 rounded-lg border border-gray-600 shadow-lg overflow-hidden relative animate-fadeIn pointer-events-auto">

@@ -1,22 +1,22 @@
 import React from 'react';
-import { Mic, MicOff, Video, VideoOff, Monitor, LayoutGrid, Settings, MessageSquare, MessageSquareOff } from 'lucide-react';
+import { Mic, MicOff, Monitor, LayoutGrid, Settings, MessageSquare, MessageSquareOff, Users } from 'lucide-react';
 
 interface ControlBarProps {
   micOn: boolean;
-  camOn: boolean;
   sharingScreen: boolean;
   buildMode: boolean;
   chatVisible: boolean;
+  usersMenuVisible: boolean;
   onToggleMic: () => void;
-  onToggleCam: () => void;
   onToggleScreen: () => void;
   onToggleBuild: () => void;
   onToggleChat: () => void;
+  onToggleUsers: () => void;
 }
 
 const ControlBar: React.FC<ControlBarProps> = ({
-  micOn, camOn, sharingScreen, buildMode, chatVisible,
-  onToggleMic, onToggleCam, onToggleScreen, onToggleBuild, onToggleChat
+  micOn, sharingScreen, buildMode, chatVisible, usersMenuVisible,
+  onToggleMic, onToggleScreen, onToggleBuild, onToggleChat, onToggleUsers
 }) => {
   const btnClass = "p-3 rounded-full backdrop-blur-md transition-all duration-200 flex items-center justify-center shadow-lg active:scale-95";
   const activeClass = "bg-indigo-600 text-white hover:bg-indigo-700";
@@ -28,10 +28,6 @@ const ControlBar: React.FC<ControlBarProps> = ({
       
       <button onClick={onToggleMic} className={`${btnClass} ${micOn ? neutralClass : inactiveClass}`}>
         {micOn ? <Mic size={20} /> : <MicOff size={20} />}
-      </button>
-
-      <button onClick={onToggleCam} className={`${btnClass} ${camOn ? neutralClass : inactiveClass}`}>
-        {camOn ? <Video size={20} /> : <VideoOff size={20} />}
       </button>
 
       <button onClick={onToggleScreen} className={`${btnClass} ${sharingScreen ? activeClass : neutralClass}`}>
@@ -46,6 +42,14 @@ const ControlBar: React.FC<ControlBarProps> = ({
         title={chatVisible ? "Hide Chat" : "Show Chat"}
       >
         {chatVisible ? <MessageSquare size={20} /> : <MessageSquareOff size={20} />}
+      </button>
+
+      <button
+        onClick={onToggleUsers}
+        className={`${btnClass} ${usersMenuVisible ? activeClass : neutralClass}`}
+        title="Participants"
+      >
+        <Users size={20} />
       </button>
 
       <button 

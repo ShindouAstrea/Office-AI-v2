@@ -2,7 +2,6 @@
   "name": "Nexus Virtual Office",
   "description": "A collaborative virtual workspace featuring customizable avatars, spatial interaction zones, map editing, and an AI-powered office assistant.",
   "requestFramePermissions": [
-    "camera",
     "microphone",
     "display-capture"
   ]

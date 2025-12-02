@@ -11,6 +11,22 @@ export enum FurnitureType {
   PLANT = 'PLANT',
   CHAIR = 'CHAIR',
   FLOOR = 'FLOOR',
+  // New items
+  COFFEE_MAKER = 'COFFEE_MAKER',
+  SCREEN = 'SCREEN',
+  TOILET = 'TOILET',
+  SINK = 'SINK',
+  FOOD = 'FOOD',
+  TABLE_ROUND = 'TABLE_ROUND',
+  // Additional items for rendering
+  RUG = 'RUG',
+  BOOKSHELF = 'BOOKSHELF',
+  COUCH = 'COUCH',
+  WHITEBOARD = 'WHITEBOARD',
+  PRINTER = 'PRINTER',
+  LAMP = 'LAMP',
+  // Tool types
+  DELETE = 'DELETE'
 }
 
 export interface Position {
@@ -26,6 +42,9 @@ export interface Player {
   targetPosition: Position; // For smooth interpolation
   isTalking: boolean;
   avatarId: number;
+  // Changed to string to support custom statuses
+  status?: string; 
+  room?: string;
 }
 
 export interface Furniture {
@@ -33,6 +52,14 @@ export interface Furniture {
   type: FurnitureType;
   position: Position;
   rotation: number; // 0, 90, 180, 270
+}
+
+export interface MapZone {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  type: 'KITCHEN' | 'BATHROOM' | 'OFFICE';
 }
 
 export interface ChatMessage {
