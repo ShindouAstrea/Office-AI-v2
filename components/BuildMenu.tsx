@@ -4,6 +4,7 @@ import {
     LayoutGrid, Monitor, Coffee, Armchair, Book, Printer, Lightbulb, 
     Square, Type, Utensils, Flower2, Table, Box, Trash2, Home, Briefcase, Sofa, Palette, X
 } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface BuildMenuProps {
   selectedType: FurnitureType;
@@ -12,86 +13,85 @@ interface BuildMenuProps {
   onSelect: (type: FurnitureType, variant: number, rotation: number) => void;
 }
 
-// Data Structure defining all available build items
-const CATEGORIES = [
+const BuildMenu: React.FC<BuildMenuProps> = ({ selectedType, selectedVariant, selectedRotation, onSelect }) => {
+  const { t } = useLanguage();
+  const [activeTab, setActiveTab] = useState('structure');
+
+  const CATEGORIES = [
     {
         id: 'structure',
-        label: 'Structure',
+        label: t('cat.structure'),
         icon: <Home size={18} />,
         items: [
-            { type: FurnitureType.WALL, variant: 0, rotation: 0, label: 'Brick Wall (H)' },
-            { type: FurnitureType.WALL, variant: 0, rotation: 90, label: 'Brick Wall (V)' },
-            { type: FurnitureType.WALL, variant: 1, rotation: 0, label: 'Concrete (H)' },
-            { type: FurnitureType.WALL, variant: 1, rotation: 90, label: 'Concrete (V)' },
-            { type: FurnitureType.FLOOR, variant: 0, rotation: 0, label: 'Wood Floor' },
-            { type: FurnitureType.FLOOR, variant: 1, rotation: 0, label: 'Tile Floor' },
-            { type: FurnitureType.FLOOR, variant: 2, rotation: 0, label: 'Dark Floor' },
+            { type: FurnitureType.WALL, variant: 0, rotation: 0, label: t('furn.wall_brick_h') },
+            { type: FurnitureType.WALL, variant: 0, rotation: 90, label: t('furn.wall_brick_v') },
+            { type: FurnitureType.WALL, variant: 1, rotation: 0, label: t('furn.concrete_h') },
+            { type: FurnitureType.WALL, variant: 1, rotation: 90, label: t('furn.concrete_v') },
+            { type: FurnitureType.FLOOR, variant: 0, rotation: 0, label: t('furn.floor_wood') },
+            { type: FurnitureType.FLOOR, variant: 1, rotation: 0, label: t('furn.floor_tile') },
+            { type: FurnitureType.FLOOR, variant: 2, rotation: 0, label: t('furn.floor_dark') },
         ]
     },
     {
         id: 'office',
-        label: 'Office',
+        label: t('cat.office'),
         icon: <Briefcase size={18} />,
         items: [
-            { type: FurnitureType.DESK, variant: 0, rotation: 0, label: 'Wood Desk' },
-            { type: FurnitureType.DESK, variant: 1, rotation: 0, label: 'White Desk' },
-            { type: FurnitureType.CHAIR, variant: 0, rotation: 0, label: 'Office Chair' },
-            { type: FurnitureType.CHAIR, variant: 1, rotation: 0, label: 'Exec Chair' },
-            { type: FurnitureType.SCREEN, variant: 0, rotation: 0, label: 'Monitor' },
-            { type: FurnitureType.WHITEBOARD, variant: 0, rotation: 0, label: 'Whiteboard' },
-            { type: FurnitureType.PRINTER, variant: 0, rotation: 0, label: 'Printer' },
+            { type: FurnitureType.DESK, variant: 0, rotation: 0, label: t('furn.desk_wood') },
+            { type: FurnitureType.DESK, variant: 1, rotation: 0, label: t('furn.desk_white') },
+            { type: FurnitureType.CHAIR, variant: 0, rotation: 0, label: t('furn.chair_office') },
+            { type: FurnitureType.CHAIR, variant: 1, rotation: 0, label: t('furn.chair_exec') },
+            { type: FurnitureType.SCREEN, variant: 0, rotation: 0, label: t('furn.monitor') },
+            { type: FurnitureType.WHITEBOARD, variant: 0, rotation: 0, label: t('furn.whiteboard') },
+            { type: FurnitureType.PRINTER, variant: 0, rotation: 0, label: t('furn.printer') },
         ]
     },
     {
         id: 'lounge',
-        label: 'Lounge',
+        label: t('cat.lounge'),
         icon: <Sofa size={18} />,
         items: [
-            { type: FurnitureType.COUCH, variant: 0, rotation: 0, label: 'Blue Couch' },
-            { type: FurnitureType.COUCH, variant: 1, rotation: 0, label: 'Red Couch' },
-            { type: FurnitureType.COUCH, variant: 2, rotation: 0, label: 'Green Couch' },
-            { type: FurnitureType.TABLE_ROUND, variant: 0, rotation: 0, label: 'Round Table' },
-            { type: FurnitureType.BOOKSHELF, variant: 0, rotation: 0, label: 'Bookshelf' },
+            { type: FurnitureType.COUCH, variant: 0, rotation: 0, label: t('furn.couch_blue') },
+            { type: FurnitureType.COUCH, variant: 1, rotation: 0, label: t('furn.couch_red') },
+            { type: FurnitureType.COUCH, variant: 2, rotation: 0, label: t('furn.couch_green') },
+            { type: FurnitureType.TABLE_ROUND, variant: 0, rotation: 0, label: t('furn.table_round') },
+            { type: FurnitureType.BOOKSHELF, variant: 0, rotation: 0, label: t('furn.bookshelf') },
         ]
     },
     {
         id: 'decor',
-        label: 'Decor',
+        label: t('cat.decor'),
         icon: <Palette size={18} />,
         items: [
-            { type: FurnitureType.PLANT, variant: 0, rotation: 0, label: 'Tall Plant' },
-            { type: FurnitureType.PLANT, variant: 1, rotation: 0, label: 'Bushy Plant' },
-            { type: FurnitureType.LAMP, variant: 0, rotation: 0, label: 'Floor Lamp' },
-            { type: FurnitureType.RUG, variant: 0, rotation: 0, label: 'Red Rug' },
-            { type: FurnitureType.RUG, variant: 1, rotation: 0, label: 'Blue Rug' },
-            { type: FurnitureType.RUG, variant: 2, rotation: 0, label: 'Persian Rug' },
+            { type: FurnitureType.PLANT, variant: 0, rotation: 0, label: t('furn.plant_tall') },
+            { type: FurnitureType.PLANT, variant: 1, rotation: 0, label: t('furn.plant_bush') },
+            { type: FurnitureType.LAMP, variant: 0, rotation: 0, label: t('furn.lamp') },
+            { type: FurnitureType.RUG, variant: 0, rotation: 0, label: t('furn.rug_red') },
+            { type: FurnitureType.RUG, variant: 1, rotation: 0, label: t('furn.rug_blue') },
+            { type: FurnitureType.RUG, variant: 2, rotation: 0, label: t('furn.rug_persian') },
         ]
     },
     {
         id: 'amenities',
-        label: 'Amenities',
+        label: t('cat.amenities'),
         icon: <Coffee size={18} />,
         items: [
-            { type: FurnitureType.COFFEE_MAKER, variant: 0, rotation: 0, label: 'Coffee Maker' },
-            { type: FurnitureType.FOOD, variant: 0, rotation: 0, label: 'Food Plate' },
-            { type: FurnitureType.SINK, variant: 0, rotation: 0, label: 'Sink' },
-            { type: FurnitureType.TOILET, variant: 0, rotation: 0, label: 'Toilet' },
+            { type: FurnitureType.COFFEE_MAKER, variant: 0, rotation: 0, label: t('furn.coffee') },
+            { type: FurnitureType.FOOD, variant: 0, rotation: 0, label: t('furn.food') },
+            { type: FurnitureType.SINK, variant: 0, rotation: 0, label: t('furn.sink') },
+            { type: FurnitureType.TOILET, variant: 0, rotation: 0, label: t('furn.toilet') },
         ]
     }
-];
-
-const BuildMenu: React.FC<BuildMenuProps> = ({ selectedType, selectedVariant, selectedRotation, onSelect }) => {
-  const [activeTab, setActiveTab] = useState('structure');
+  ];
 
   const currentCategory = CATEGORIES.find(c => c.id === activeTab);
 
   return (
     <div className="fixed right-0 top-0 h-full w-[30%] min-w-[320px] bg-gray-900/95 backdrop-blur-xl border-l border-gray-700 shadow-2xl flex flex-col z-50 animate-fadeIn rounded-l-2xl">
        
-       {/* Header / Tools */}
        <div className="p-5 border-b border-gray-700 flex justify-between items-center bg-gray-800/50 rounded-tl-2xl">
          <h2 className="text-white font-bold text-lg flex items-center gap-3">
-            <LayoutGrid size={24} className="text-orange-500"/> Builder Mode
+            <LayoutGrid size={24} className="text-orange-500"/> {t('build.mode')}
          </h2>
          <div className="flex gap-2">
             <button
@@ -102,12 +102,11 @@ const BuildMenu: React.FC<BuildMenuProps> = ({ selectedType, selectedVariant, se
                     : 'bg-gray-800 text-gray-400 border-gray-600 hover:text-white'
                 }`}
             >
-                <Trash2 size={16} /> ERASE
+                <Trash2 size={16} /> {t('build.erase')}
             </button>
          </div>
        </div>
 
-       {/* Category Tabs (Scrollable) */}
        <div className="flex border-b border-gray-700 overflow-x-auto custom-scrollbar bg-gray-900 shrink-0">
          {CATEGORIES.map(cat => (
              <button
@@ -123,11 +122,9 @@ const BuildMenu: React.FC<BuildMenuProps> = ({ selectedType, selectedVariant, se
          ))}
        </div>
 
-       {/* Grid Content */}
        <div className="flex-1 p-5 overflow-y-auto custom-scrollbar bg-gray-900/50">
            <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
                {currentCategory?.items.map((item, idx) => {
-                   // Strict comparison including rotation to fix selection bug
                    const isSelected = selectedType === item.type && 
                                       selectedVariant === item.variant && 
                                       selectedRotation === item.rotation;
@@ -147,7 +144,6 @@ const BuildMenu: React.FC<BuildMenuProps> = ({ selectedType, selectedVariant, se
                         </div>
                         <span className="text-xs font-medium text-center leading-tight">{item.label}</span>
                         
-                        {/* Selected Indicator */}
                         {isSelected && (
                             <div className="absolute top-3 right-3 w-2.5 h-2.5 bg-white rounded-full shadow-glow"></div>
                         )}
@@ -157,9 +153,8 @@ const BuildMenu: React.FC<BuildMenuProps> = ({ selectedType, selectedVariant, se
            </div>
        </div>
 
-       {/* Footer Hint */}
        <div className="p-3 text-center text-xs text-gray-500 border-t border-gray-800 bg-gray-900">
-          Select an item and click on the map to place it.
+          {t('build.hint')}
        </div>
     </div>
   );

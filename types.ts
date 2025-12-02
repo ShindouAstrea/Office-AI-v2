@@ -65,12 +65,21 @@ export interface MapZone {
 
 export interface ChatMessage {
   id: string;
+  roomId: string; // New field to link message to a room
   senderId: string;
   senderName: string;
   text: string;
   timestamp: number;
   isPrivate: boolean;
   targetId?: string;
+}
+
+export interface ChatRoom {
+  id: string;
+  name: string;
+  type: 'GLOBAL' | 'PRIVATE';
+  participants: string[]; // List of Player IDs allowed in this room
+  createdBy: string;
 }
 
 export interface GameState {

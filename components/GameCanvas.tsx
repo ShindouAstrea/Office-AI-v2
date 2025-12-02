@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { Player, Furniture, FurnitureType, Position } from '../types';
 import { TILE_SIZE, MOVE_SPEED, MAP_ZONES } from '../constants';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface GameCanvasProps {
   currentUser: Player;
@@ -32,6 +33,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   buildMode,
   onPlaceFurniture
 }) => {
+  const { t } = useLanguage();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const keysPressed = useRef<Set<string>>(new Set());
   const requestRef = useRef<number>(0);
@@ -54,6 +56,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   // Input handling
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+            return;
+        }
+
         keysPressed.current.add(e.code);
 
         if (e.code === 'KeyE') {
@@ -652,10 +659,10 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         const ix = item.position.x * TILE_SIZE + TILE_SIZE/2;
         const iy = item.position.y * TILE_SIZE;
         
-        let label = "Press E";
-        if (item.type === FurnitureType.COFFEE_MAKER) label = "Make Coffee";
-        else if (item.type === FurnitureType.SINK) label = "Wash Hands";
-        else if (item.type === FurnitureType.SCREEN) label = "Use Computer";
+        let label = t('interact.press');
+        if (item.type === FurnitureType.COFFEE_MAKER) label = t('interact.coffee');
+        else if (item.type === FurnitureType.SINK) label = t('interact.wash');
+        else if (item.type === FurnitureType.SCREEN) label = t('interact.computer');
         
         const textWidth = ctx.measureText(label).width;
         const boxWidth = Math.max(60, textWidth + 20);
@@ -678,7 +685,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         ctx.setLineDash([]);
         ctx.fillStyle = '#e17055';
         ctx.font = '16px "Courier New", monospace';
-        ctx.fillText("BUILD MODE", camX + ctx.canvas.width / 2, camY + 50);
+        ctx.fillText(t('build.mode'), camX + ctx.canvas.width / 2, camY + 50);
     }
 
     ctx.restore();

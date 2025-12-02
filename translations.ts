@@ -1,0 +1,192 @@
+export type Language = 'en' | 'es';
+
+export const translations = {
+  en: {
+    // General
+    "app.title": "NEXUS OFFICE",
+    "loading": "Connecting to Virtual Office...",
+    "offline": "Offline Mode: Using temporary storage.",
+    "conn.error": "Connection Error",
+    "conn.temp": "Connection Failed: Changes are temporary",
+    "conn.msg_fail": "Connection Failed: Message not saved",
+    
+    // Avatar Creator
+    "avatar.init": "INITIALIZE_AVATAR...",
+    "avatar.label.name": "CHARACTER NAME",
+    "avatar.placeholder": "HERO_NAME",
+    "avatar.label.color": "TUNIC COLOR",
+    "avatar.btn.join": "JOIN WORLD",
+
+    // Chat
+    "chat.title": "Office Chat",
+    "chat.placeholder": "Message in #",
+    "chat.new_room": "New Room",
+    "chat.room_name": "Room Name",
+    "chat.placeholder_room": "Ex. Project X",
+    "chat.invite": "INVITE PARTICIPANTS",
+    "chat.no_peers": "No other users online",
+    "chat.btn_create": "Create Room",
+    "chat.empty": "Start the conversation in",
+    "room.global": "General",
+
+    // Zones / Locations
+    "loc.kitchen": "Cafeteria",
+    "loc.bathroom": "Restrooms",
+    "loc.office1": "Private Office 1",
+    "loc.office2": "Dev Office",
+    "loc.open": "Open Space",
+    "notify.enter": "Entered",
+
+    // Participants
+    "part.title": "Participants",
+    "status.online": "Online",
+    "status.busy": "Busy",
+    "status.afk": "AFK",
+    "status.lunch": "Lunch",
+    "part.edit": "Edit",
+    "part.set_status": "Set status...",
+    "part.custom": "Custom status...",
+    "part.empty": "No other users in the office.",
+
+    // Builder
+    "build.mode": "BUILDER MODE",
+    "build.hint": "Select an item and click on the map to place it.",
+    "build.erase": "ERASE",
+    "cat.structure": "Structure",
+    "cat.office": "Office",
+    "cat.lounge": "Lounge",
+    "cat.decor": "Decor",
+    "cat.amenities": "Amenities",
+
+    // Furniture Names
+    "furn.wall_brick_h": "Brick Wall (H)",
+    "furn.wall_brick_v": "Brick Wall (V)",
+    "furn.concrete_h": "Concrete (H)",
+    "furn.concrete_v": "Concrete (V)",
+    "furn.floor_wood": "Wood Floor",
+    "furn.floor_tile": "Tile Floor",
+    "furn.floor_dark": "Dark Floor",
+    "furn.desk_wood": "Wood Desk",
+    "furn.desk_white": "White Desk",
+    "furn.chair_office": "Office Chair",
+    "furn.chair_exec": "Exec Chair",
+    "furn.monitor": "Monitor",
+    "furn.whiteboard": "Whiteboard",
+    "furn.printer": "Printer",
+    "furn.couch_blue": "Blue Couch",
+    "furn.couch_red": "Red Couch",
+    "furn.couch_green": "Green Couch",
+    "furn.table_round": "Round Table",
+    "furn.bookshelf": "Bookshelf",
+    "furn.plant_tall": "Tall Plant",
+    "furn.plant_bush": "Bushy Plant",
+    "furn.lamp": "Floor Lamp",
+    "furn.rug_red": "Red Rug",
+    "furn.rug_blue": "Blue Rug",
+    "furn.rug_persian": "Persian Rug",
+    "furn.coffee": "Coffee Maker",
+    "furn.food": "Food Plate",
+    "furn.sink": "Sink",
+    "furn.toilet": "Toilet",
+
+    // Interactions
+    "interact.press": "Press E",
+    "interact.coffee": "Make Coffee",
+    "interact.wash": "Wash Hands",
+    "interact.computer": "Use Computer",
+  },
+  es: {
+    // General
+    "app.title": "OFICINA NEXUS",
+    "loading": "Conectando a la Oficina Virtual...",
+    "offline": "Modo Offline: Usando almacenamiento temporal.",
+    "conn.error": "Error de Conexión",
+    "conn.temp": "Error de Conexión: Cambios temporales",
+    "conn.msg_fail": "Error de Conexión: Mensaje no guardado",
+
+    // Avatar Creator
+    "avatar.init": "INICIANDO_AVATAR...",
+    "avatar.label.name": "NOMBRE DEL PERSONAJE",
+    "avatar.placeholder": "NOMBRE_HEROE",
+    "avatar.label.color": "COLOR DE TÚNICA",
+    "avatar.btn.join": "ENTRAR AL MUNDO",
+
+    // Chat
+    "chat.title": "Chat de Oficina",
+    "chat.placeholder": "Mensaje en #",
+    "chat.new_room": "Nueva Sala",
+    "chat.room_name": "Nombre de Sala",
+    "chat.placeholder_room": "Ej. Proyecto X",
+    "chat.invite": "INVITAR PARTICIPANTES",
+    "chat.no_peers": "No hay otros usuarios en línea",
+    "chat.btn_create": "Crear Sala",
+    "chat.empty": "Comienza la conversación en",
+    "room.global": "General",
+
+    // Zones
+    "loc.kitchen": "Cafetería",
+    "loc.bathroom": "Baños",
+    "loc.office1": "Oficina Privada 1",
+    "loc.office2": "Oficina Desarrollo",
+    "loc.open": "Espacio Común",
+    "notify.enter": "Has ingresado a",
+
+    // Participants
+    "part.title": "Participantes",
+    "status.online": "En línea",
+    "status.busy": "Ocupado",
+    "status.afk": "Ausente",
+    "status.lunch": "Almorzando",
+    "part.edit": "Editar",
+    "part.set_status": "Establecer estado...",
+    "part.custom": "Estado personalizado...",
+    "part.empty": "No hay otros usuarios en la oficina.",
+
+    // Builder
+    "build.mode": "MODO CONSTRUCTOR",
+    "build.hint": "Selecciona un objeto y haz clic en el mapa para colocarlo.",
+    "build.erase": "BORRAR",
+    "cat.structure": "Estructura",
+    "cat.office": "Oficina",
+    "cat.lounge": "Sala",
+    "cat.decor": "Decoración",
+    "cat.amenities": "Servicios",
+
+    // Furniture Names
+    "furn.wall_brick_h": "Pared Ladrillo (H)",
+    "furn.wall_brick_v": "Pared Ladrillo (V)",
+    "furn.concrete_h": "Concreto (H)",
+    "furn.concrete_v": "Concreto (V)",
+    "furn.floor_wood": "Piso Madera",
+    "furn.floor_tile": "Piso Baldosa",
+    "furn.floor_dark": "Piso Oscuro",
+    "furn.desk_wood": "Escritorio Madera",
+    "furn.desk_white": "Escritorio Blanco",
+    "furn.chair_office": "Silla Oficina",
+    "furn.chair_exec": "Silla Ejecutiva",
+    "furn.monitor": "Monitor",
+    "furn.whiteboard": "Pizarra",
+    "furn.printer": "Impresora",
+    "furn.couch_blue": "Sofá Azul",
+    "furn.couch_red": "Sofá Rojo",
+    "furn.couch_green": "Sofá Verde",
+    "furn.table_round": "Mesa Redonda",
+    "furn.bookshelf": "Librero",
+    "furn.plant_tall": "Planta Alta",
+    "furn.plant_bush": "Arbusto",
+    "furn.lamp": "Lámpara Pie",
+    "furn.rug_red": "Alfombra Roja",
+    "furn.rug_blue": "Alfombra Azul",
+    "furn.rug_persian": "Alfombra Persa",
+    "furn.coffee": "Cafetera",
+    "furn.food": "Plato Comida",
+    "furn.sink": "Lavabo",
+    "furn.toilet": "Inodoro",
+
+    // Interactions
+    "interact.press": "Presiona E",
+    "interact.coffee": "Preparar Café",
+    "interact.wash": "Lavarse las Manos",
+    "interact.computer": "Usar Computadora",
+  }
+};

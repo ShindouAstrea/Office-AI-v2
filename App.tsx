@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Player, Furniture, ChatMessage, Position, FurnitureType } from './types';
+import { Player, Furniture, ChatMessage, Position, FurnitureType, ChatRoom } from './types';
 import { 
   INITIAL_FURNITURE, TILE_SIZE, AVATAR_COLORS, 
   KITCHEN_ZONE, BATHROOM_ZONE, OFFICE_1_ZONE, OFFICE_2_ZONE 
@@ -12,12 +12,31 @@ import VideoOverlay from './components/VideoOverlay';
 import ZoneNotification from './components/ZoneNotification';
 import ParticipantsMenu from './components/ParticipantsMenu';
 import BuildMenu from './components/BuildMenu';
+import { loadFurnitureMap, saveFurnitureMap, loadChatHistory, saveChatMessage, loadChatRooms, createChatRoom } from './services/firebase';
+import { useLanguage } from './contexts/LanguageContext';
+
+// Initial Global Room
+const GLOBAL_ROOM: ChatRoom = {
+    id: 'global',
+    name: 'General',
+    type: 'GLOBAL',
+    participants: [],
+    createdBy: 'system'
+};
 
 const App: React.FC = () => {
+  const { t } = useLanguage();
   const [currentUser, setCurrentUser] = useState<Player | null>(null);
   const [peers, setPeers] = useState<Player[]>([]);
+  
+  // Data State
   const [furniture, setFurniture] = useState<Furniture[]>(INITIAL_FURNITURE);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [rooms, setRooms] = useState<ChatRoom[]>([GLOBAL_ROOM]);
+  const [activeRoomId, setActiveRoomId] = useState<string>('global');
+  
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
+
   const [buildMode, setBuildMode] = useState(false);
   
   // Construction State
@@ -26,8 +45,11 @@ const App: React.FC = () => {
   const [selectedRotation, setSelectedRotation] = useState<number>(0);
 
   const [interactionTarget, setInteractionTarget] = useState<string | null>(null);
-  const [notification, setNotification] = useState<string | null>(null);
   
+  // Notification System
+  const [notification, setNotification] = useState<string | null>(null);
+  const [notificationType, setNotificationType] = useState<'info' | 'error'>('info');
+
   // UI State
   const [chatVisible, setChatVisible] = useState(true);
   const [usersMenuVisible, setUsersMenuVisible] = useState(false);
@@ -40,11 +62,103 @@ const App: React.FC = () => {
   const lastRoomRef = useRef<string>('OPEN_SPACE');
   const notificationTimeoutRef = useRef<number | null>(null);
 
-  // Media Streams (Refs to hold stream objects without re-renders)
+  // Media Streams
   const localMicStreamRef = useRef<MediaStream | null>(null);
   const localScreenStreamRef = useRef<MediaStream | null>(null);
 
-  // Simulate peers moving
+  // --- DATA SYNC ---
+  
+  const fetchData = async () => {
+      try {
+          const [remoteFurniture, remoteChat, remoteRooms] = await Promise.all([
+              loadFurnitureMap(),
+              loadChatHistory(),
+              loadChatRooms()
+          ]);
+
+          if (remoteFurniture) setFurniture(remoteFurniture);
+          if (remoteChat) setMessages(remoteChat);
+          
+          if (remoteRooms && remoteRooms.length > 0) {
+              const uniqueRooms = [GLOBAL_ROOM, ...remoteRooms.filter(r => r.id !== 'global')];
+              setRooms(uniqueRooms);
+          }
+      } catch (error) {
+          console.error("Data fetch warning:", error);
+      }
+  };
+
+  // Initial Load
+  useEffect(() => {
+    const init = async () => {
+        await fetchData();
+        setIsDataLoaded(true);
+    };
+    init();
+  }, []);
+
+  // Polling
+  useEffect(() => {
+      if (!isDataLoaded) return;
+      const interval = setInterval(() => {
+          fetchData(); 
+      }, 5000); 
+      return () => clearInterval(interval);
+  }, [isDataLoaded]);
+
+
+  const showNotification = (msg: string, type: 'info' | 'error' = 'info') => {
+      if (notificationTimeoutRef.current) window.clearTimeout(notificationTimeoutRef.current);
+      setNotification(msg);
+      setNotificationType(type);
+      notificationTimeoutRef.current = window.setTimeout(() => {
+          setNotification(null);
+      }, 4000);
+  };
+
+  // --- PERSISTENCE HANDLERS ---
+  
+  const persistMapChange = async (newFurniture: Furniture[]) => {
+      setFurniture(newFurniture);
+      try {
+          await saveFurnitureMap(newFurniture);
+      } catch (error) {
+          showNotification(t('conn.temp'), "error");
+      }
+  };
+
+  const persistChatMessage = async (msg: ChatMessage) => {
+      setMessages(prev => [...prev, msg]);
+      try {
+          await saveChatMessage(msg);
+      } catch (error) {
+          showNotification(t('conn.msg_fail'), "error");
+      }
+  };
+
+  const handleCreateRoom = async (name: string, participants: string[]) => {
+      if (!currentUser) return;
+      
+      const newRoom: ChatRoom = {
+          id: `room-${Date.now()}`,
+          name,
+          type: 'PRIVATE',
+          participants,
+          createdBy: currentUser.id
+      };
+
+      setRooms(prev => [...prev, newRoom]);
+      setActiveRoomId(newRoom.id);
+      
+      try {
+          await createChatRoom(newRoom);
+          showNotification(`${t('chat.new_room')}: ${name}`);
+      } catch (error) {
+          showNotification(t('conn.error'), "error");
+      }
+  };
+
+
   useEffect(() => {
     if (!currentUser) return;
 
@@ -66,7 +180,7 @@ const App: React.FC = () => {
     }, 100);
 
     return () => clearInterval(interval);
-  }, [currentUser?.id]); // Only run once on mount/user creation
+  }, [currentUser?.id]);
 
 
   // --- ZONE LOGIC & NOTIFICATIONS ---
@@ -78,7 +192,7 @@ const App: React.FC = () => {
     const gridY = Math.floor(y / TILE_SIZE);
 
     let currentRoomId = 'OPEN_SPACE';
-    let roomName = 'Espacio Común';
+    let roomName = t('loc.open');
     
     // Check Zones
     const inZone = (z: {x:number, y:number, w:number, h:number}) => 
@@ -86,26 +200,25 @@ const App: React.FC = () => {
 
     if (inZone(KITCHEN_ZONE)) {
         currentRoomId = 'KITCHEN';
-        roomName = 'Cafetería';
+        roomName = t('loc.kitchen');
     } else if (inZone(BATHROOM_ZONE)) {
         currentRoomId = 'BATHROOM';
-        roomName = 'Baños';
+        roomName = t('loc.bathroom');
     } else if (inZone(OFFICE_1_ZONE)) {
         currentRoomId = 'OFFICE_1';
-        roomName = 'Oficina Privada 1';
+        roomName = t('loc.office1');
     } else if (inZone(OFFICE_2_ZONE)) {
         currentRoomId = 'OFFICE_2';
-        roomName = 'Oficina de Desarrollo';
+        roomName = t('loc.office2');
     }
 
-    // Auto-status logic ONLY if moving into specific functional rooms
+    // Auto-status logic
     let autoStatus = currentUser.status;
     if (currentUser.room !== currentRoomId) {
         if (currentRoomId === 'KITCHEN') autoStatus = 'Almorzando';
         else if (currentRoomId === 'BATHROOM') autoStatus = 'En el baño';
         else if (lastRoomRef.current === 'KITCHEN' || lastRoomRef.current === 'BATHROOM') autoStatus = 'En línea';
         
-        // Auto-mute check
         if ((currentRoomId === 'KITCHEN' || currentRoomId === 'BATHROOM') && micOn) {
            handleToggleMic();
         }
@@ -113,25 +226,17 @@ const App: React.FC = () => {
         setCurrentUser(prev => prev ? { ...prev, room: currentRoomId, status: autoStatus } : null);
     }
 
-
-    // Notifications logic
+    // Room Notifications
     if (currentRoomId !== lastRoomRef.current) {
-        if (notificationTimeoutRef.current) window.clearTimeout(notificationTimeoutRef.current);
-        
         const text = currentRoomId === 'OPEN_SPACE' 
-            ? `Has ingresado al ${roomName}` 
-            : `Has ingresado a: ${roomName}`;
+            ? `${t('notify.enter')} ${roomName}` 
+            : `${t('notify.enter')}: ${roomName}`;
             
-        setNotification(text);
-        
-        notificationTimeoutRef.current = window.setTimeout(() => {
-            setNotification(null);
-        }, 3000);
-
+        showNotification(text, 'info');
         lastRoomRef.current = currentRoomId;
     }
 
-  }, [currentUser?.position, micOn]); // Depend on position and mic status
+  }, [currentUser?.position, micOn, t]);
 
 
   const handleJoin = (playerData: Partial<Player>) => {
@@ -160,17 +265,18 @@ const App: React.FC = () => {
     }
   };
 
-  const handleSendMessage = (text: string, isPrivate: boolean) => {
+  const handleSendMessage = (text: string, roomId: string) => {
       if (!currentUser) return;
       const msg: ChatMessage = {
           id: Date.now().toString(),
+          roomId: roomId,
           senderId: currentUser.id,
           senderName: currentUser.name,
           text,
           timestamp: Date.now(),
-          isPrivate
+          isPrivate: roomId !== 'global'
       };
-      setMessages(prev => [...prev, msg]);
+      persistChatMessage(msg);
   };
 
   const handleInteract = (targetId: string | null) => {
@@ -187,35 +293,21 @@ const App: React.FC = () => {
       if (!buildMode) return;
 
       if (selectedFurnitureType === FurnitureType.DELETE) {
-          // Remove furniture at this position
-          setFurniture(prev => prev.filter(f => f.position.x !== pos.x || f.position.y !== pos.y));
+          const newFurniture = furniture.filter(f => f.position.x !== pos.x || f.position.y !== pos.y);
+          persistMapChange(newFurniture);
       } else {
-          // Place new furniture (optional: replace existing)
-          // First remove any item at same spot to prevent stacking if it's NOT a floor
-          // Floors can be underneath stuff, but let's simplify: replace anything at this grid
-          // Actually, we probably want floors to co-exist with furniture, but let's keep it simple
-          
-          // Refined Logic: 
-          // If placing Floor: Remove other Floors at pos.
-          // If placing Object: Remove other Objects at pos (Keep Floor).
-          
-          setFurniture(prev => {
-              let filtered = prev;
-              if (selectedFurnitureType === FurnitureType.FLOOR) {
-                   filtered = prev.filter(f => !(f.position.x === pos.x && f.position.y === pos.y && f.type === FurnitureType.FLOOR));
-              } else {
-                   filtered = prev.filter(f => !(f.position.x === pos.x && f.position.y === pos.y && f.type !== FurnitureType.FLOOR));
-              }
+          const filtered = selectedFurnitureType === FurnitureType.FLOOR
+            ? furniture.filter(f => !(f.position.x === pos.x && f.position.y === pos.y && f.type === FurnitureType.FLOOR))
+            : furniture.filter(f => !(f.position.x === pos.x && f.position.y === pos.y && f.type !== FurnitureType.FLOOR));
 
-              const newFurn: Furniture = {
-                  id: `f-${Date.now()}`,
-                  type: selectedFurnitureType, 
-                  position: pos,
-                  rotation: selectedRotation,
-                  variant: selectedVariant
-              };
-              return [...filtered, newFurn];
-          });
+          const newFurn: Furniture = {
+              id: `f-${Date.now()}`,
+              type: selectedFurnitureType, 
+              position: pos,
+              rotation: selectedRotation,
+              variant: selectedVariant
+          };
+          persistMapChange([...filtered, newFurn]);
       }
   };
 
@@ -232,7 +324,7 @@ const App: React.FC = () => {
             localMicStreamRef.current = stream;
             setMicOn(true);
         } catch (error) {
-            console.error("Microphone access denied:", error);
+            console.error("Mic access denied:", error);
         }
     }
   };
@@ -254,7 +346,7 @@ const App: React.FC = () => {
                 localScreenStreamRef.current = null;
             };
         } catch (error) {
-            console.error("Screen share cancelled or failed:", error);
+            console.error("Screen share failed:", error);
             setSharingScreen(false);
         }
     }
@@ -263,6 +355,20 @@ const App: React.FC = () => {
   if (!currentUser) {
     return <AvatarCreator onJoin={handleJoin} />;
   }
+
+  // Loading Screen
+  if (!isDataLoaded) {
+      return (
+        <div className="h-screen w-full bg-gray-900 flex flex-col items-center justify-center text-white">
+            <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p>{t('loading')}</p>
+        </div>
+      );
+  }
+
+  const visibleRooms = rooms.filter(r => 
+      r.type === 'GLOBAL' || (r.participants && r.participants.includes(currentUser.id))
+  );
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-gray-900">
@@ -277,7 +383,7 @@ const App: React.FC = () => {
         />
 
         {/* Notifications */}
-        <ZoneNotification message={notification} />
+        <ZoneNotification message={notification} type={notificationType} />
 
         {/* HUD Elements */}
         <VideoOverlay peers={peers} currentUserPos={currentUser.position} />
@@ -305,8 +411,14 @@ const App: React.FC = () => {
         {/* Side Panels */}
         <div className={chatVisible ? '' : 'hidden'}>
             <ChatWidget 
+                currentUser={currentUser}
+                peers={peers}
+                rooms={visibleRooms}
+                activeRoomId={activeRoomId}
                 messages={messages}
                 onSendMessage={handleSendMessage}
+                onCreateRoom={handleCreateRoom}
+                onSetActiveRoom={setActiveRoomId}
             />
         </div>
 

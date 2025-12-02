@@ -12,6 +12,12 @@ export const AVATAR_COLORS = [
   '#ff6b6b', '#48dbfb', '#1dd1a1', '#feca57', '#5f27cd', '#ff9ff3', '#ff9f43', '#54a0ff'
 ];
 
+export const STORAGE_KEYS = {
+  FURNITURE: 'nexus_furniture_data_v1',
+  CHAT: 'nexus_chat_history_v1',
+  USER_PREFS: 'nexus_user_prefs_v1'
+};
+
 // Zones for Logic (Muting & Notifications)
 export const KITCHEN_ZONE = { x: 2, y: 2, w: 10, h: 10 };
 export const BATHROOM_ZONE = { x: 28, y: 2, w: 10, h: 8 };

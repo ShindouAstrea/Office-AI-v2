@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { User, MapPin, Smile, X, Circle, Clock, Coffee, Briefcase } from 'lucide-react';
 import { Player } from '../types';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface ParticipantsMenuProps {
   currentUser: Player;
@@ -9,26 +10,27 @@ interface ParticipantsMenuProps {
   onClose: () => void;
 }
 
-const PRESET_STATUSES = [
-  { label: 'Disponible', icon: <Circle size={14} className="text-green-500 fill-current" />, value: 'En línea' },
-  { label: 'Ocupado', icon: <Briefcase size={14} className="text-red-500" />, value: 'Ocupado' },
-  { label: 'AFK', icon: <Clock size={14} className="text-yellow-500" />, value: 'AFK' },
-  { label: 'Almorzando', icon: <Coffee size={14} className="text-orange-500" />, value: 'Almorzando' },
-];
-
-const getLocationName = (roomId?: string) => {
-  switch (roomId) {
-    case 'KITCHEN': return 'Cafetería';
-    case 'BATHROOM': return 'Baños';
-    case 'OFFICE_1': return 'Oficina Privada 1';
-    case 'OFFICE_2': return 'Oficina Desarrollo';
-    default: return 'Espacio Común';
-  }
-};
-
 const ParticipantsMenu: React.FC<ParticipantsMenuProps> = ({ currentUser, peers, onUpdateStatus, onClose }) => {
+  const { t } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
   const [customStatus, setCustomStatus] = useState('');
+
+  const PRESET_STATUSES = [
+    { label: t('status.online'), icon: <Circle size={14} className="text-green-500 fill-current" />, value: 'En línea' },
+    { label: t('status.busy'), icon: <Briefcase size={14} className="text-red-500" />, value: 'Ocupado' },
+    { label: t('status.afk'), icon: <Clock size={14} className="text-yellow-500" />, value: 'AFK' },
+    { label: t('status.lunch'), icon: <Coffee size={14} className="text-orange-500" />, value: 'Almorzando' },
+  ];
+
+  const getLocationName = (roomId?: string) => {
+    switch (roomId) {
+      case 'KITCHEN': return t('loc.kitchen');
+      case 'BATHROOM': return t('loc.bathroom');
+      case 'OFFICE_1': return t('loc.office1');
+      case 'OFFICE_2': return t('loc.office2');
+      default: return t('loc.open');
+    }
+  };
 
   const handleStatusClick = (status: string) => {
     onUpdateStatus(status);
@@ -51,7 +53,7 @@ const ParticipantsMenu: React.FC<ParticipantsMenuProps> = ({ currentUser, peers,
       <div className="flex items-center justify-between p-4 border-b border-gray-800 bg-gray-800/50">
         <h3 className="text-white font-bold flex items-center gap-2">
           <User size={18} className="text-indigo-400" />
-          Participantes ({peers.length + 1})
+          {t('part.title')} ({peers.length + 1})
         </h3>
         <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
           <X size={18} />
@@ -80,9 +82,9 @@ const ParticipantsMenu: React.FC<ParticipantsMenuProps> = ({ currentUser, peers,
           >
             <div className="flex items-center gap-2 text-sm text-gray-200">
               <Smile size={16} className="text-gray-400 group-hover:text-indigo-400" />
-              <span className="truncate max-w-[180px]">{currentUser.status || 'Establecer estado...'}</span>
+              <span className="truncate max-w-[180px]">{currentUser.status || t('part.set_status')}</span>
             </div>
-            <span className="text-xs text-gray-500">Editar</span>
+            <span className="text-xs text-gray-500">{t('part.edit')}</span>
           </button>
         ) : (
           <div className="space-y-2 animate-fadeIn">
@@ -102,7 +104,7 @@ const ParticipantsMenu: React.FC<ParticipantsMenuProps> = ({ currentUser, peers,
                 type="text"
                 value={customStatus}
                 onChange={(e) => setCustomStatus(e.target.value)}
-                placeholder="Estado personalizado..."
+                placeholder={t('part.custom')}
                 className="flex-1 bg-gray-900 border border-gray-600 rounded px-2 py-1 text-sm text-white focus:border-indigo-500 outline-none"
                 autoFocus
               />
@@ -135,14 +137,14 @@ const ParticipantsMenu: React.FC<ParticipantsMenuProps> = ({ currentUser, peers,
                 <span className="text-[10px] text-gray-500">{getLocationName(peer.room)}</span>
               </div>
               <div className="text-xs text-gray-400 truncate flex items-center gap-1">
-                 {peer.status || 'En línea'}
+                 {peer.status || t('status.online')}
               </div>
             </div>
           </div>
         ))}
         {peers.length === 0 && (
             <div className="text-center py-8 text-gray-500 text-xs italic">
-                No hay otros usuarios en la oficina.
+                {t('part.empty')}
             </div>
         )}
       </div>
