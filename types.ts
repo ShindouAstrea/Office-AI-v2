@@ -52,6 +52,7 @@ export interface Furniture {
   type: FurnitureType;
   position: Position;
   rotation: number; // 0, 90, 180, 270
+  variant?: number; // 0: Default, 1: Alt Color, 2: Alt Style, etc.
 }
 
 export interface MapZone {

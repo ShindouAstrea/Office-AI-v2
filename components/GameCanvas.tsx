@@ -142,7 +142,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
             item.type === FurnitureType.CHAIR || 
             item.type === FurnitureType.FOOD ||
             item.type === FurnitureType.SCREEN ||
-            item.type === FurnitureType.RUG
+            item.type === FurnitureType.RUG ||
+            item.type === FurnitureType.LAMP // Walkable lamps? Maybe
         ) continue;
 
         const itemPixelX = item.position.x * TILE_SIZE;
@@ -298,36 +299,40 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         // Determine Zone
         const zone = MAP_ZONES.find(z => c >= z.x && c < z.x + z.w && r >= z.y && r < z.y + z.h);
         
-        if (zone?.type === 'KITCHEN') {
-            // Checkered Floor
-            ctx.fillStyle = (c + r) % 2 === 0 ? '#ecf0f1' : '#bdc3c7';
-            ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
-        } else if (zone?.type === 'BATHROOM') {
-            // Ceramic Tile
-            ctx.fillStyle = '#dfe6e9';
-            ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
-            ctx.strokeStyle = '#b2bec3';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
-            // Inner tile cross
-            ctx.beginPath();
-            ctx.moveTo(x + TILE_SIZE/2, y);
-            ctx.lineTo(x + TILE_SIZE/2, y + TILE_SIZE);
-            ctx.moveTo(x, y + TILE_SIZE/2);
-            ctx.lineTo(x + TILE_SIZE, y + TILE_SIZE/2);
-            ctx.stroke();
-        } else if (zone?.type === 'OFFICE') {
-             // Darker wood for offices
-             ctx.fillStyle = '#d3a67d';
-             ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
-             ctx.fillStyle = '#c5966c';
-             ctx.fillRect(x + 2, y + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+        // Draw placed floors first
+        const floorItem = furniture.find(f => f.type === FurnitureType.FLOOR && f.position.x === c && f.position.y === r);
+        
+        if (floorItem) {
+             if (floorItem.variant === 0) { // Wood
+                 ctx.fillStyle = '#eaddcf';
+                 ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+                 ctx.fillStyle = '#dcc1ab';
+                 ctx.fillRect(x, y, TILE_SIZE, 2);
+             } else if (floorItem.variant === 1) { // Tile
+                 ctx.fillStyle = (c + r) % 2 === 0 ? '#ecf0f1' : '#bdc3c7';
+                 ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+             } else if (floorItem.variant === 2) { // Dark
+                 ctx.fillStyle = '#34495e';
+                 ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+             }
         } else {
-            // Default Wood Floor
-            ctx.fillStyle = '#eaddcf';
-            ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
-            ctx.fillStyle = '#dcc1ab';
-            ctx.fillRect(c * TILE_SIZE - 2, r * TILE_SIZE - 2, 4, 4);
+            // Default floors based on zone if no custom floor placed
+            if (zone?.type === 'KITCHEN') {
+                ctx.fillStyle = (c + r) % 2 === 0 ? '#ecf0f1' : '#bdc3c7';
+                ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+            } else if (zone?.type === 'BATHROOM') {
+                ctx.fillStyle = '#dfe6e9';
+                ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+                ctx.strokeStyle = '#b2bec3';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
+            } else if (zone?.type === 'OFFICE') {
+                 ctx.fillStyle = '#d3a67d';
+                 ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+            } else {
+                ctx.fillStyle = '#eaddcf';
+                ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+            }
         }
       }
     }
@@ -337,11 +342,22 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         if (f.type === FurnitureType.RUG) {
             const x = f.position.x * TILE_SIZE;
             const y = f.position.y * TILE_SIZE;
-            ctx.fillStyle = '#e74c3c'; // Red Rug
+            
+            const colorMain = f.variant === 1 ? '#3498db' : (f.variant === 2 ? '#8e44ad' : '#e74c3c'); // Blue, Purple, Red
+            const colorStroke = f.variant === 1 ? '#2980b9' : (f.variant === 2 ? '#9b59b6' : '#c0392b');
+
+            ctx.fillStyle = colorMain;
             ctx.fillRect(x + 4, y + 4, TILE_SIZE - 8, TILE_SIZE - 8);
-            ctx.strokeStyle = '#c0392b';
+            ctx.strokeStyle = colorStroke;
             ctx.lineWidth = 2;
             ctx.strokeRect(x + 4, y + 4, TILE_SIZE - 8, TILE_SIZE - 8);
+            
+            // Pattern for Persian (Variant 2)
+            if (f.variant === 2) {
+                 ctx.strokeStyle = '#f1c40f';
+                 ctx.strokeRect(x+10, y+10, TILE_SIZE-20, TILE_SIZE-20);
+            }
+
             // Fringe
             ctx.fillStyle = '#ecf0f1';
             ctx.fillRect(x + 2, y + 4, 2, TILE_SIZE - 8);
@@ -351,7 +367,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
     // 3. Sort and Draw Entities
     const renderables = [
-        ...furniture.filter(f => f.type !== FurnitureType.RUG).map(f => ({ type: 'furniture', data: f, y: f.position.y * TILE_SIZE })),
+        ...furniture.filter(f => f.type !== FurnitureType.RUG && f.type !== FurnitureType.FLOOR).map(f => ({ type: 'furniture', data: f, y: f.position.y * TILE_SIZE })),
         ...peers.map(p => ({ type: 'peer', data: p, y: p.position.y })),
         { type: 'player', data: currentUser, y: currentPosRef.current.y }
     ];
@@ -367,25 +383,51 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
             if (f.type === FurnitureType.WALL) {
                 // Pixel Art Wall
-                const h = TILE_SIZE + 20;
+                const isVertical = f.rotation === 90 || f.rotation === 270;
+                
+                // Shadow
                 ctx.fillStyle = 'rgba(0,0,0,0.3)';
-                ctx.fillRect(x + TILE_SIZE, y, 4, TILE_SIZE);
-                ctx.fillStyle = '#b2bec3'; // Top
-                ctx.fillRect(x, y - 20, TILE_SIZE, 20);
-                ctx.fillStyle = '#636e72'; // Front
-                ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
-                // Bricks
-                ctx.fillStyle = '#535c68';
-                ctx.fillRect(x + 5, y + 5, 10, 5);
-                ctx.fillRect(x + 25, y + 15, 10, 5);
+                if (isVertical) ctx.fillRect(x + 10, y, 4, TILE_SIZE); // Side shadow?
+                else ctx.fillRect(x + TILE_SIZE, y, 4, TILE_SIZE);
+                
+                let topColor = '#b2bec3';
+                let frontColor = '#636e72';
+                
+                if (f.variant === 1) { // Concrete
+                    topColor = '#95a5a6';
+                    frontColor = '#7f8c8d';
+                }
+
+                if (isVertical) {
+                    ctx.fillStyle = topColor;
+                    ctx.fillRect(x + 14, y - 20, 20, TILE_SIZE + 20); // Thick vertical wall
+                    ctx.fillStyle = frontColor;
+                    ctx.fillRect(x + 14, y, 20, TILE_SIZE);
+                } else {
+                    ctx.fillStyle = topColor; 
+                    ctx.fillRect(x, y - 20, TILE_SIZE, 20);
+                    ctx.fillStyle = frontColor; 
+                    ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+                    // Bricks for Variant 0
+                    if (f.variant === 0) {
+                        ctx.fillStyle = '#535c68';
+                        ctx.fillRect(x + 5, y + 5, 10, 5);
+                        ctx.fillRect(x + 25, y + 15, 10, 5);
+                    }
+                }
             } 
             else if (f.type === FurnitureType.DESK) {
-                ctx.fillStyle = '#594433'; // Legs
+                const color = f.variant === 1 ? '#ecf0f1' : '#a67c52'; // White or Wood
+                const legColor = f.variant === 1 ? '#bdc3c7' : '#594433';
+                
+                ctx.fillStyle = legColor; // Legs
                 ctx.fillRect(x + 4, y + 20, 4, 20);
                 ctx.fillRect(x + TILE_SIZE - 8, y + 20, 4, 20);
-                ctx.fillStyle = '#7a5c44'; // Top Side
+                
+                ctx.fillStyle = color === '#ecf0f1' ? '#bdc3c7' : '#7a5c44'; // Top Side
                 ctx.fillRect(x, y + 10, TILE_SIZE, 10);
-                ctx.fillStyle = '#a67c52'; // Top Surface
+                
+                ctx.fillStyle = color; // Top Surface
                 ctx.fillRect(x, y, TILE_SIZE, 10);
             }
             else if (f.type === FurnitureType.SCREEN) {
@@ -398,16 +440,12 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
                 ctx.fillRect(x + 14, y + 12, 20, 12);
             }
             else if (f.type === FurnitureType.TOILET) {
-                // Toilet
                 ctx.fillStyle = '#ffffff';
                 ctx.fillRect(x + 14, y + 5, 20, 10); // Tank
                 ctx.fillStyle = '#ecf0f1';
                 ctx.fillRect(x + 16, y + 15, 16, 18); // Bowl
-                ctx.fillStyle = '#bdc3c7'; // Shadow/Detail
-                ctx.fillRect(x + 18, y + 18, 12, 10);
             }
             else if (f.type === FurnitureType.SINK) {
-                 // Sink
                  ctx.fillStyle = '#ffffff';
                  ctx.beginPath();
                  ctx.ellipse(x + 24, y + 24, 16, 10, 0, 0, Math.PI * 2);
@@ -416,7 +454,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
                  ctx.fillRect(x + 22, y + 10, 4, 8);
             }
             else if (f.type === FurnitureType.TABLE_ROUND) {
-                // Round Table
                 ctx.fillStyle = 'rgba(0,0,0,0.2)';
                 ctx.beginPath();
                 ctx.ellipse(x + 24, y + 35, 15, 5, 0, 0, Math.PI*2);
@@ -430,19 +467,16 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
                 ctx.fillRect(x + 22, y + 24, 4, 15);
             }
             else if (f.type === FurnitureType.COFFEE_MAKER) {
-                // Machine
                 ctx.fillStyle = '#2d3436';
                 ctx.fillRect(x + 14, y + 14, 20, 24);
-                ctx.fillStyle = '#000'; // Glass pot
+                ctx.fillStyle = '#000'; 
                 ctx.fillRect(x + 16, y + 24, 16, 10);
             }
             else if (f.type === FurnitureType.FOOD) {
-                 // Plate
                  ctx.fillStyle = '#fff';
                  ctx.beginPath();
                  ctx.ellipse(x + 24, y + 24, 10, 6, 0, 0, Math.PI*2);
                  ctx.fill();
-                 // Pizza slice?
                  ctx.fillStyle = '#e67e22';
                  ctx.beginPath();
                  ctx.moveTo(x+24, y+24);
@@ -451,39 +485,47 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
                  ctx.fill();
             }
             else if (f.type === FurnitureType.PLANT) {
-                ctx.fillStyle = '#d35400';
+                const isBushy = f.variant === 1;
+                
+                ctx.fillStyle = '#d35400'; // Pot
                 ctx.fillRect(x + 12, y + 24, 24, 20);
-                ctx.fillStyle = '#27ae60';
-                ctx.fillRect(x + 14, y + 5, 6, 6);
-                ctx.fillRect(x + 24, y + 2, 8, 8);
-                ctx.fillRect(x + 10, y + 12, 8, 8);
+                
+                ctx.fillStyle = '#27ae60'; // Leaves
+                if (isBushy) {
+                     ctx.beginPath();
+                     ctx.arc(x+24, y+10, 15, 0, Math.PI*2);
+                     ctx.fill();
+                } else {
+                    ctx.fillRect(x + 14, y + 5, 6, 6);
+                    ctx.fillRect(x + 24, y + 2, 8, 8);
+                    ctx.fillRect(x + 10, y + 12, 8, 8);
+                }
             }
             else if (f.type === FurnitureType.CHAIR) {
-                ctx.fillStyle = '#e17055'; 
+                // Chair Color: 0=Orange, 1=Black
+                const color = f.variant === 1 ? '#2d3436' : '#e17055';
+                const shadow = f.variant === 1 ? '#000' : '#d35400';
+
+                ctx.fillStyle = color; 
                 if (f.rotation === 0 || f.rotation === 180) {
                      ctx.fillRect(x + 12, y + 20, 24, 4);
-                     ctx.fillStyle = '#d35400';
+                     ctx.fillStyle = shadow;
                      ctx.fillRect(x + 12, y + 5, 24, 15);
                 } else {
                      ctx.fillRect(x + 14, y + 20, 20, 4);
-                     ctx.fillStyle = '#d35400';
+                     ctx.fillStyle = shadow;
                      ctx.fillRect(x + 14, y + 5, 4, 15);
                 }
                 ctx.fillStyle = '#636e72';
                 ctx.fillRect(x + 22, y + 24, 4, 12);
                 ctx.fillRect(x + 16, y + 36, 16, 4);
             }
-            // NEW FURNITURE RENDERERS
             else if (f.type === FurnitureType.BOOKSHELF) {
-                // Bookshelf
                 ctx.fillStyle = '#5d4037'; // Wood frame
                 ctx.fillRect(x, y - 20, TILE_SIZE, TILE_SIZE + 20);
-                // Shelves and Shadow
                 ctx.fillStyle = '#3e2723';
                 ctx.fillRect(x + 4, y - 10, TILE_SIZE - 8, 4);
                 ctx.fillRect(x + 4, y + 10, TILE_SIZE - 8, 4);
-                
-                // Books
                 const colors = ['#c0392b', '#2980b9', '#27ae60', '#f1c40f'];
                 for(let i=0; i<6; i++) {
                     ctx.fillStyle = colors[i % colors.length];
@@ -492,28 +534,25 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
                 }
             }
             else if (f.type === FurnitureType.COUCH) {
-                // Couch
-                ctx.fillStyle = '#3498db'; // Cushion color
+                // 0: Blue, 1: Red, 2: Green
+                const color = f.variant === 1 ? '#e74c3c' : (f.variant === 2 ? '#2ecc71' : '#3498db');
+                const darkColor = f.variant === 1 ? '#c0392b' : (f.variant === 2 ? '#27ae60' : '#2980b9');
+                
+                ctx.fillStyle = color; // Cushion
                 ctx.roundRect(x + 2, y + 15, TILE_SIZE - 4, 25, 5);
                 ctx.fill();
-                ctx.fillStyle = '#2980b9'; // Backrest
+                ctx.fillStyle = darkColor; // Backrest
                 ctx.roundRect(x + 2, y + 5, TILE_SIZE - 4, 15, 5);
                 ctx.fill();
-                // Arms?
-                ctx.fillStyle = '#2980b9'; 
-                // Simple blocky couch
             }
             else if (f.type === FurnitureType.WHITEBOARD) {
-                // Legs
                 ctx.fillStyle = '#95a5a6';
                 ctx.fillRect(x + 4, y + 10, 4, 30);
                 ctx.fillRect(x + TILE_SIZE - 8, y + 10, 4, 30);
-                // Board
                 ctx.fillStyle = '#bdc3c7'; // Frame
                 ctx.fillRect(x + 2, y - 15, TILE_SIZE - 4, 30);
                 ctx.fillStyle = '#ffffff'; // Surface
                 ctx.fillRect(x + 5, y - 12, TILE_SIZE - 10, 24);
-                // Scribbles
                 ctx.strokeStyle = '#e74c3c';
                 ctx.beginPath();
                 ctx.moveTo(x + 10, y);
@@ -522,7 +561,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
                 ctx.stroke();
             }
             else if (f.type === FurnitureType.PRINTER) {
-                // Boxy Printer
                 ctx.fillStyle = '#ecf0f1';
                 ctx.fillRect(x + 8, y + 10, 32, 24);
                 ctx.fillStyle = '#bdc3c7'; // Detail
@@ -531,7 +569,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
                 ctx.fillRect(x + 14, y + 6, 20, 6);
             }
             else if (f.type === FurnitureType.LAMP) {
-                // Floor Lamp
                 ctx.fillStyle = '#2c3e50'; // Pole
                 ctx.fillRect(x + 22, y + 10, 4, 30);
                 ctx.fillStyle = '#f1c40f'; // Shade
@@ -541,7 +578,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
                 ctx.lineTo(x + 30, y - 5);
                 ctx.lineTo(x + 18, y - 5);
                 ctx.fill();
-                // Glow
                 ctx.fillStyle = 'rgba(241, 196, 15, 0.3)';
                 ctx.beginPath();
                 ctx.arc(x + 24, y + 5, 20, 0, Math.PI * 2);

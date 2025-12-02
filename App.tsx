@@ -19,7 +19,12 @@ const App: React.FC = () => {
   const [furniture, setFurniture] = useState<Furniture[]>(INITIAL_FURNITURE);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [buildMode, setBuildMode] = useState(false);
+  
+  // Construction State
   const [selectedFurnitureType, setSelectedFurnitureType] = useState<FurnitureType>(FurnitureType.DESK);
+  const [selectedVariant, setSelectedVariant] = useState<number>(0);
+  const [selectedRotation, setSelectedRotation] = useState<number>(0);
+
   const [interactionTarget, setInteractionTarget] = useState<string | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
   
@@ -172,6 +177,12 @@ const App: React.FC = () => {
       setInteractionTarget(targetId);
   };
 
+  const handleSelectFurniture = (type: FurnitureType, variant: number, rotation: number) => {
+      setSelectedFurnitureType(type);
+      setSelectedVariant(variant);
+      setSelectedRotation(rotation);
+  };
+
   const handlePlaceFurniture = (pos: Position) => {
       if (!buildMode) return;
 
@@ -180,14 +191,28 @@ const App: React.FC = () => {
           setFurniture(prev => prev.filter(f => f.position.x !== pos.x || f.position.y !== pos.y));
       } else {
           // Place new furniture (optional: replace existing)
-          // First remove any item at same spot to prevent stacking
+          // First remove any item at same spot to prevent stacking if it's NOT a floor
+          // Floors can be underneath stuff, but let's simplify: replace anything at this grid
+          // Actually, we probably want floors to co-exist with furniture, but let's keep it simple
+          
+          // Refined Logic: 
+          // If placing Floor: Remove other Floors at pos.
+          // If placing Object: Remove other Objects at pos (Keep Floor).
+          
           setFurniture(prev => {
-              const filtered = prev.filter(f => f.position.x !== pos.x || f.position.y !== pos.y);
+              let filtered = prev;
+              if (selectedFurnitureType === FurnitureType.FLOOR) {
+                   filtered = prev.filter(f => !(f.position.x === pos.x && f.position.y === pos.y && f.type === FurnitureType.FLOOR));
+              } else {
+                   filtered = prev.filter(f => !(f.position.x === pos.x && f.position.y === pos.y && f.type !== FurnitureType.FLOOR));
+              }
+
               const newFurn: Furniture = {
                   id: `f-${Date.now()}`,
                   type: selectedFurnitureType, 
                   position: pos,
-                  rotation: 0
+                  rotation: selectedRotation,
+                  variant: selectedVariant
               };
               return [...filtered, newFurn];
           });
@@ -260,7 +285,9 @@ const App: React.FC = () => {
         {buildMode && (
           <BuildMenu 
             selectedType={selectedFurnitureType}
-            onSelect={setSelectedFurnitureType}
+            selectedVariant={selectedVariant}
+            selectedRotation={selectedRotation}
+            onSelect={handleSelectFurniture}
           />
         )}
 
