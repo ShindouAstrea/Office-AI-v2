@@ -40,7 +40,7 @@ const DOCS = {
 // --- API ---
 
 export const loadFurnitureMap = async (): Promise<Furniture[] | null> => {
-  if (!db) throw new Error("Database not connected");
+  if (!db) return null; // Graceful fallback
   
   try {
     const docRef = doc(db, COLLECTIONS.OFFICE, DOCS.MAIN_MAP);
@@ -53,7 +53,7 @@ export const loadFurnitureMap = async (): Promise<Furniture[] | null> => {
     }
   } catch (error) {
     console.error("Error loading map:", error);
-    throw error;
+    return null;
   }
 };
 
@@ -70,7 +70,7 @@ export const saveFurnitureMap = async (furniture: Furniture[]) => {
 };
 
 export const loadChatHistory = async (): Promise<ChatMessage[]> => {
-    if (!db) throw new Error("Database not connected");
+    if (!db) return []; // Graceful fallback
     try {
         const docRef = doc(db, COLLECTIONS.OFFICE, DOCS.CHAT_LOG);
         const docSnap = await getDoc(docRef);
@@ -79,7 +79,8 @@ export const loadChatHistory = async (): Promise<ChatMessage[]> => {
         }
         return [];
     } catch (error) {
-        throw error;
+        console.error("Error loading chat:", error);
+        return [];
     }
 }
 
@@ -99,7 +100,7 @@ export const saveChatMessage = async (message: ChatMessage) => {
 // --- ROOMS API ---
 
 export const loadChatRooms = async (): Promise<ChatRoom[]> => {
-    if (!db) throw new Error("Database not connected");
+    if (!db) return []; // Graceful fallback
     try {
         const docRef = doc(db, COLLECTIONS.OFFICE, DOCS.CHAT_ROOMS);
         const docSnap = await getDoc(docRef);
@@ -108,7 +109,8 @@ export const loadChatRooms = async (): Promise<ChatRoom[]> => {
         }
         return [];
     } catch (error) {
-        throw error;
+        console.error("Error loading rooms:", error);
+        return [];
     }
 };
 
