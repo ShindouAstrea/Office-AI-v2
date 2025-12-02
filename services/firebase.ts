@@ -26,7 +26,7 @@ try {
       db = getFirestore(app);
   } else {
     console.log(firebaseConfig);
-      console.warn("Firebase credentials missing. App running in Offline/Memory Mode.");
+      console.warn("Firebase credentials missing. App running in Offline/Memory Mode. desuwa");
   }
 } catch (error) {
   console.error("Error initializing Firebase:", error);

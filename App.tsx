@@ -12,6 +12,7 @@ import VideoOverlay from './components/VideoOverlay';
 import ZoneNotification from './components/ZoneNotification';
 import ParticipantsMenu from './components/ParticipantsMenu';
 import BuildMenu from './components/BuildMenu';
+import Minimap from './components/Minimap';
 import { loadFurnitureMap, saveFurnitureMap, loadChatHistory, saveChatMessage, loadChatRooms, createChatRoom } from './services/firebase';
 import { useLanguage } from './contexts/LanguageContext';
 
@@ -387,6 +388,13 @@ const App: React.FC = () => {
 
         {/* HUD Elements */}
         <VideoOverlay peers={peers} currentUserPos={currentUser.position} />
+        
+        {/* NEW MINIMAP COMPONENT */}
+        <Minimap 
+            furniture={furniture}
+            peers={peers}
+            currentUser={currentUser}
+        />
         
         {buildMode && (
           <BuildMenu 
