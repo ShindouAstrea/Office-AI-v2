@@ -14,7 +14,7 @@ const firebaseConfig = {
   messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.FIREBASE_APP_ID
 };
-
+console.table(firebaseConfig);
 let db: any = null;
 
 try {
