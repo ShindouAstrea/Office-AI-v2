@@ -174,4 +174,7 @@ export const INITIAL_FURNITURE: Furniture[] = [
     { id: 'deco-p2', type: FurnitureType.PLANT, position: {x: 24, y: 8}, rotation: 0, variant: 0 },
     { id: 'deco-p3', type: FurnitureType.PLANT, position: {x: 14, y: 16}, rotation: 0, variant: 0 },
     { id: 'deco-p4', type: FurnitureType.PLANT, position: {x: 24, y: 16}, rotation: 0, variant: 0 },
+    
+    // NEW: ARCADE MACHINE (Lounge Area)
+    { id: 'arcade-1', type: FurnitureType.ARCADE, position: {x: 22, y: 22}, rotation: 0, variant: 0 },
 ];

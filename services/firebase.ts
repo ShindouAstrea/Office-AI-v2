@@ -1,4 +1,4 @@
-import * as firebaseApp from 'firebase/app';
+import { initializeApp } from 'firebase/app';
 import { getFirestore, doc, getDoc, setDoc, arrayUnion } from 'firebase/firestore';
 import { Furniture, ChatMessage, ChatRoom } from '../types';
 
@@ -19,11 +19,10 @@ let db: any = null;
 try {
   // Only initialize if we seem to have a valid config (check for API KEY)
   if (process.env.FIREBASE_API_KEY) {
- console.log(firebaseConfig);
-      const app = firebaseApp.initializeApp(firebaseConfig);
+      const app = initializeApp(firebaseConfig);
       db = getFirestore(app);
   } else {
-      console.warn("Firebase credentials missing. App running in Offline/Memory Mode. desuwa");
+      console.warn("Firebase credentials missing. App running in Offline/Memory Mode.");
   }
 } catch (error) {
   console.error("Error initializing Firebase:", error);

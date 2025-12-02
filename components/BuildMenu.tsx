@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FurnitureType } from '../types';
 import { 
     LayoutGrid, Monitor, Coffee, Armchair, Book, Printer, Lightbulb, 
-    Square, Type, Utensils, Flower2, Table, Box, Trash2, Home, Briefcase, Sofa, Palette, RotateCw
+    Square, Type, Utensils, Flower2, Table, Box, Trash2, Home, Briefcase, Sofa, Palette, RotateCw, Gamepad2
 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -18,7 +18,6 @@ const BuildMenu: React.FC<BuildMenuProps> = ({ selectedType, selectedVariant, se
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState('structure');
 
-  // Removed duplicated H/V entries since we now support dynamic rotation
   const CATEGORIES = [
     {
         id: 'structure',
@@ -56,6 +55,7 @@ const BuildMenu: React.FC<BuildMenuProps> = ({ selectedType, selectedVariant, se
             { type: FurnitureType.COUCH, variant: 2, rotation: 0, label: t('furn.couch_green') },
             { type: FurnitureType.TABLE_ROUND, variant: 0, rotation: 0, label: t('furn.table_round') },
             { type: FurnitureType.BOOKSHELF, variant: 0, rotation: 0, label: t('furn.bookshelf') },
+            { type: FurnitureType.ARCADE, variant: 0, rotation: 0, label: t('furn.arcade') },
         ]
     },
     {
@@ -186,6 +186,7 @@ const getIconForType = (type: FurnitureType) => {
         case FurnitureType.SCREEN: return <Monitor size={32} />;
         case FurnitureType.TOILET: return <Box size={32} />;
         case FurnitureType.SINK: return <Box size={32} />;
+        case FurnitureType.ARCADE: return <Gamepad2 size={32} />;
         default: return <Box size={32} />;
     }
 };

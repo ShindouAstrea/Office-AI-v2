@@ -16,6 +16,111 @@ import Minimap from './components/Minimap';
 import ScreenShareViewer from './components/ScreenShareViewer';
 import { loadFurnitureMap, saveFurnitureMap, loadChatHistory, saveChatMessage, loadChatRooms, createChatRoom } from './services/firebase';
 import { useLanguage } from './contexts/LanguageContext';
+import { X, Circle, RotateCcw, XOctagon } from 'lucide-react';
+
+// --- INLINED TIC-TAC-TOE COMPONENT ---
+// Inlined to resolve module resolution issues while keeping file structure simple
+interface TicTacToeProps {
+  onClose: () => void;
+}
+
+const TicTacToe: React.FC<TicTacToeProps> = ({ onClose }) => {
+  const { t } = useLanguage();
+  const [board, setBoard] = useState(Array(9).fill(null));
+  const [xIsNext, setXIsNext] = useState(true);
+
+  const calculateWinner = (squares: any[]) => {
+    const lines = [
+      [0, 1, 2], [3, 4, 5], [6, 7, 8],
+      [0, 3, 6], [1, 4, 7], [2, 5, 8],
+      [0, 4, 8], [2, 4, 6],
+    ];
+    for (let i = 0; i < lines.length; i++) {
+      const [a, b, c] = lines[i];
+      if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
+        return squares[a];
+      }
+    }
+    return null;
+  };
+
+  const handleClick = (i: number) => {
+    if (calculateWinner(board) || board[i]) return;
+    const nextBoard = board.slice();
+    nextBoard[i] = xIsNext ? 'X' : 'O';
+    setBoard(nextBoard);
+    setXIsNext(!xIsNext);
+  };
+
+  const resetGame = () => {
+    setBoard(Array(9).fill(null));
+    setXIsNext(true);
+  };
+
+  const winner = calculateWinner(board);
+  const isDraw = !winner && board.every(Boolean);
+  
+  let status;
+  if (winner) {
+    status = `${t('game.winner')}: ${winner}`;
+  } else if (isDraw) {
+    status = t('game.draw');
+  } else {
+    status = `${t('game.next_player')}: ${xIsNext ? 'X' : 'O'}`;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fadeIn">
+      <div className="bg-gray-900 border-4 border-indigo-500 rounded-2xl p-6 shadow-2xl max-w-sm w-full relative transform transition-all scale-100">
+        
+        {/* Header */}
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-indigo-500 uppercase tracking-widest shadow-neon">
+            {t('game.tictactoe')}
+          </h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-red-500 transition-colors">
+            <XOctagon size={24} />
+          </button>
+        </div>
+
+        {/* Status */}
+        <div className="text-center text-white mb-6 font-mono text-lg bg-gray-800 py-2 rounded-lg border border-gray-700">
+          {status}
+        </div>
+
+        {/* Board */}
+        <div className="grid grid-cols-3 gap-2 mb-6">
+          {board.map((square, i) => (
+            <button
+              key={i}
+              className={`h-24 w-24 bg-gray-800 rounded-lg text-4xl flex items-center justify-center transition-all duration-200 
+                ${!square && !winner ? 'hover:bg-gray-700 cursor-pointer' : ''}
+                ${square === 'X' ? 'text-pink-500' : 'text-indigo-400'}
+                border-2 border-gray-700
+              `}
+              onClick={() => handleClick(i)}
+            >
+              {square === 'X' && <X size={48} strokeWidth={3} />}
+              {square === 'O' && <Circle size={40} strokeWidth={3} />}
+            </button>
+          ))}
+        </div>
+
+        {/* Controls */}
+        <div className="flex justify-center">
+          <button
+            onClick={resetGame}
+            className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg active:scale-95"
+          >
+            <RotateCcw size={18} /> {t('game.reset')}
+          </button>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+// --- END OF INLINED COMPONENT ---
 
 // Initial Global Room
 const GLOBAL_ROOM: ChatRoom = {
@@ -56,20 +161,19 @@ const App: React.FC = () => {
   // UI State
   const [chatVisible, setChatVisible] = useState(true);
   const [usersMenuVisible, setUsersMenuVisible] = useState(false);
+  const [isGameOpen, setIsGameOpen] = useState(false); // Game state
   
   // Media State
   const [micOn, setMicOn] = useState(false);
   const [sharingScreen, setSharingScreen] = useState(false);
   
-  // NEW: Screen Share Management
+  // Screen Share Management
   const [screenShares, setScreenShares] = useState<{ playerId: string; stream: MediaStream; playerName: string }[]>([]);
   const [maximizedScreenId, setMaximizedScreenId] = useState<string | null>(null);
 
-  // Refs for tracking changes
+  // Refs
   const lastRoomRef = useRef<string>('OPEN_SPACE');
   const notificationTimeoutRef = useRef<number | null>(null);
-
-  // Media Streams
   const localMicStreamRef = useRef<MediaStream | null>(null);
   const localScreenStreamRef = useRef<MediaStream | null>(null);
 
@@ -98,10 +202,11 @@ const App: React.FC = () => {
             localMicStreamRef.current = stream;
             setMicOn(true);
         } catch (error: any) {
-            console.error("Mic access denied:", error);
             if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+                 console.log("Mic permission denied by user.");
                  showNotification("Acceso al micrófono denegado", "error");
             } else {
+                 console.error("Mic access failed:", error);
                  showNotification("Error al acceder al micrófono", "error");
             }
         }
@@ -118,7 +223,6 @@ const App: React.FC = () => {
             localScreenStreamRef.current = null;
         }
         setSharingScreen(false);
-        // Remove from list
         setScreenShares(prev => prev.filter(s => s.playerId !== currentUser.id));
         if (maximizedScreenId === currentUser.id) setMaximizedScreenId(null);
 
@@ -143,11 +247,12 @@ const App: React.FC = () => {
                 if (maximizedScreenId === currentUser.id) setMaximizedScreenId(null);
             };
         } catch (error: any) {
-            console.error("Screen share failed:", error);
             setSharingScreen(false);
             if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+                console.log("Screen share cancelled by user.");
                 showNotification("Compartir pantalla cancelado", "info");
             } else {
+                console.error("Screen share failed:", error);
                 showNotification("Error al compartir pantalla", "error");
             }
         }
@@ -283,12 +388,16 @@ const App: React.FC = () => {
       }
   };
 
-
-  useEffect(() => {
-    if (!currentUser) return;
-    // ... (Peers simulation removed for now)
-  }, [currentUser?.id]);
-
+  // --- INTERACTION HANDLER ---
+  const handleInteract = (targetId: string | null) => {
+      setInteractionTarget(targetId);
+      
+      // Check if target is an Arcade Machine
+      const targetItem = furniture.find(f => f.id === targetId);
+      if (targetItem && targetItem.type === FurnitureType.ARCADE) {
+          setIsGameOpen(true);
+      }
+  };
 
   // --- ZONE LOGIC & NOTIFICATIONS ---
   useEffect(() => {
@@ -326,6 +435,7 @@ const App: React.FC = () => {
         else if (currentRoomId === 'BATHROOM') autoStatus = 'En el baño';
         else if (lastRoomRef.current === 'KITCHEN' || lastRoomRef.current === 'BATHROOM') autoStatus = 'En línea';
         
+        // Auto-mute check
         if ((currentRoomId === 'KITCHEN' || currentRoomId === 'BATHROOM') && micOn) {
            handleToggleMic();
         }
@@ -384,10 +494,6 @@ const App: React.FC = () => {
           isPrivate: roomId !== 'global'
       };
       persistChatMessage(msg);
-  };
-
-  const handleInteract = (targetId: string | null) => {
-      setInteractionTarget(targetId);
   };
 
   const handleSelectFurniture = (type: FurnitureType, variant: number, rotation: number) => {
@@ -518,8 +624,6 @@ const App: React.FC = () => {
   if (!isDataLoaded) return <div className="h-screen bg-gray-900 text-white flex items-center justify-center">{t('loading')}</div>;
 
   const visibleRooms = rooms.filter(r => r.type === 'GLOBAL' || (r.participants && r.participants.includes(currentUser.id)));
-
-  // Identify maximizing stream
   const maximizedStream = maximizedScreenId ? screenShares.find(s => s.playerId === maximizedScreenId) : null;
 
   return (
@@ -561,7 +665,11 @@ const App: React.FC = () => {
           />
         )}
 
-        {/* Maximized Screen Viewer */}
+        {/* Minigame Overlay */}
+        {isGameOpen && (
+            <TicTacToe onClose={() => setIsGameOpen(false)} />
+        )}
+
         {maximizedStream && (
             <ScreenShareViewer 
                 stream={maximizedStream.stream} 
