@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Player, Furniture, ChatMessage, Position, FurnitureType, ChatRoom } from './types';
+import { Player, Furniture, ChatMessage, Position, FurnitureType, ChatRoom, Attachment } from './types';
 import { 
   INITIAL_FURNITURE, TILE_SIZE, AVATAR_COLORS, 
   KITCHEN_ZONE, BATHROOM_ZONE, OFFICE_1_ZONE, OFFICE_2_ZONE 
@@ -78,11 +78,9 @@ const App: React.FC = () => {
           ]);
 
           if (remoteFurniture && Array.isArray(remoteFurniture)) {
-              // SANITIZATION: Filter out items with missing positions to prevent crashes
               const validFurniture = remoteFurniture.filter(f => 
                   f && f.position && typeof f.position.x === 'number' && typeof f.position.y === 'number'
               );
-              // Only update if we have valid data (or empty array implies intentional clear, but we keep initial if empty to be safe initially)
               if (validFurniture.length > 0 || remoteFurniture.length === 0) {
                   setFurniture(validFurniture);
               }
@@ -276,7 +274,7 @@ const App: React.FC = () => {
     }
   };
 
-  const handleSendMessage = (text: string, roomId: string) => {
+  const handleSendMessage = (text: string, roomId: string, attachment?: Attachment) => {
       if (!currentUser) return;
       const msg: ChatMessage = {
           id: Date.now().toString(),
@@ -284,6 +282,7 @@ const App: React.FC = () => {
           senderId: currentUser.id,
           senderName: currentUser.name,
           text,
+          attachment,
           timestamp: Date.now(),
           isPrivate: roomId !== 'global'
       };

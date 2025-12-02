@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Users, Plus, Hash, Lock, X, Check } from 'lucide-react';
-import { ChatMessage, ChatRoom, Player } from '../types';
+import { Send, Users, Plus, Hash, Lock, X, Check, Paperclip, File, Image } from 'lucide-react';
+import { ChatMessage, ChatRoom, Player, Attachment } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface ChatWidgetProps {
@@ -9,7 +9,7 @@ interface ChatWidgetProps {
   rooms: ChatRoom[];
   activeRoomId: string;
   messages: ChatMessage[];
-  onSendMessage: (text: string, roomId: string) => void;
+  onSendMessage: (text: string, roomId: string, attachment?: Attachment) => void;
   onCreateRoom: (name: string, participants: string[]) => void;
   onSetActiveRoom: (roomId: string) => void;
 }
@@ -30,6 +30,10 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   const [newRoomName, setNewRoomName] = useState('');
   const [selectedPeers, setSelectedPeers] = useState<string[]>([]);
   
+  // Attachments State
+  const [attachment, setAttachment] = useState<Attachment | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Filter messages for current room
@@ -42,9 +46,43 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputText.trim()) return;
-    onSendMessage(inputText, activeRoomId);
+    if (!inputText.trim() && !attachment) return;
+    
+    onSendMessage(inputText, activeRoomId, attachment || undefined);
+    
     setInputText('');
+    setAttachment(null);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      // Limit size to ~800KB because we are storing in Firestore Document (Limit 1MB)
+      // If using Firebase Storage, this could be 5MB.
+      if (file.size > 800 * 1024) {
+          alert(t('chat.upload_error'));
+          if (fileInputRef.current) fileInputRef.current.value = '';
+          return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+          const base64 = reader.result as string;
+          const type = file.type.startsWith('image/') ? 'image' : 'file';
+          setAttachment({
+              type,
+              url: base64,
+              name: file.name,
+              size: file.size
+          });
+      };
+      reader.readAsDataURL(file);
+  };
+
+  const removeAttachment = () => {
+      setAttachment(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleCreateRoomSubmit = (e: React.FormEvent) => {
@@ -103,7 +141,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col bg-gray-900/50">
+      <div className="flex-1 flex flex-col bg-gray-900/50 min-w-0">
         
         {isCreatingRoom ? (
             // Room Creation View
@@ -162,13 +200,13 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
             // Chat View
             <>
                 {/* Header */}
-                <div className="flex items-center justify-between border-b border-gray-700 p-3 bg-gray-800/30">
-                    <div className="flex items-center gap-2 text-indigo-100 font-bold text-sm">
+                <div className="flex items-center justify-between border-b border-gray-700 p-3 bg-gray-800/30 shrink-0">
+                    <div className="flex items-center gap-2 text-indigo-100 font-bold text-sm truncate">
                         {activeRoom?.type === 'GLOBAL' ? <Hash size={16} className="text-gray-400"/> : <Lock size={16} className="text-orange-400"/>}
                         {getRoomName(activeRoom)}
                     </div>
                     {activeRoom?.type === 'PRIVATE' && (
-                        <div className="text-xs text-gray-500 flex items-center gap-1">
+                        <div className="text-xs text-gray-500 flex items-center gap-1 shrink-0">
                             <Users size={12} /> {activeRoom.participants.length}
                         </div>
                     )}
@@ -192,11 +230,27 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
                             </span>
                         </div>
                         <div className={`
-                            py-1.5 px-3 rounded-lg max-w-[85%] text-sm break-words
+                            py-2 px-3 rounded-lg max-w-[85%] text-sm break-words
                             ${msg.senderId === currentUser.id 
                                 ? 'bg-indigo-600 text-white rounded-tr-none' 
                                 : 'bg-gray-700 text-gray-200 rounded-tl-none'}
                         `}>
+                            {msg.attachment && (
+                                <div className="mb-2">
+                                    {msg.attachment.type === 'image' ? (
+                                        <img 
+                                            src={msg.attachment.url} 
+                                            alt={msg.attachment.name} 
+                                            className="max-w-full rounded border border-white/20 max-h-48 object-contain"
+                                        />
+                                    ) : (
+                                        <a href={msg.attachment.url} download={msg.attachment.name} className="flex items-center gap-2 p-2 bg-black/20 rounded hover:bg-black/30 transition-colors">
+                                            <File size={20} className="text-blue-300"/>
+                                            <span className="underline truncate text-xs">{msg.attachment.name}</span>
+                                        </a>
+                                    )}
+                                </div>
+                            )}
                             {msg.text}
                         </div>
                     </div>
@@ -204,22 +258,52 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
                     <div ref={messagesEndRef} />
                 </div>
 
-                {/* Input */}
-                <form onSubmit={handleSubmit} className="p-3 border-t border-gray-700 flex gap-2 bg-gray-800/30">
-                    <input
-                    type="text"
-                    value={inputText}
-                    onChange={(e) => setInputText(e.target.value)}
-                    placeholder={`${t('chat.placeholder')} ${getRoomName(activeRoom)}...`}
-                    className="flex-1 bg-gray-800 text-white text-sm rounded-lg px-3 py-2 border border-gray-600 focus:outline-none focus:border-indigo-500 transition-colors"
-                    />
-                    <button
-                    type="submit"
-                    className="p-2 rounded-lg text-white transition-colors bg-indigo-600 hover:bg-indigo-700"
-                    >
-                    <Send size={18} />
-                    </button>
-                </form>
+                {/* Input Area */}
+                <div className="p-3 border-t border-gray-700 bg-gray-800/30 flex flex-col gap-2">
+                    {/* Attachment Preview */}
+                    {attachment && (
+                        <div className="flex items-center gap-2 bg-gray-800 p-2 rounded-lg border border-gray-600">
+                            {attachment.type === 'image' ? <Image size={16} className="text-purple-400" /> : <File size={16} className="text-blue-400"/>}
+                            <span className="text-xs text-gray-300 truncate max-w-[150px]">{attachment.name}</span>
+                            <button onClick={removeAttachment} className="ml-auto text-gray-500 hover:text-red-400">
+                                <X size={14} />
+                            </button>
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="flex gap-2 items-end">
+                        <input 
+                            type="file" 
+                            ref={fileInputRef}
+                            className="hidden" 
+                            onChange={handleFileChange}
+                            accept="image/*,.pdf,.doc,.docx,.txt" // Allow images (including GIFs) and docs
+                        />
+                        <button 
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+                            title="Attach File/Image"
+                        >
+                            <Paperclip size={18} />
+                        </button>
+
+                        <input
+                        type="text"
+                        value={inputText}
+                        onChange={(e) => setInputText(e.target.value)}
+                        placeholder={`${t('chat.placeholder')} ${getRoomName(activeRoom)}...`}
+                        className="flex-1 bg-gray-800 text-white text-sm rounded-lg px-3 py-2 border border-gray-600 focus:outline-none focus:border-indigo-500 transition-colors"
+                        />
+                        <button
+                        type="submit"
+                        disabled={!inputText.trim() && !attachment}
+                        className="p-2 rounded-lg text-white transition-colors bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                        <Send size={18} />
+                        </button>
+                    </form>
+                </div>
             </>
         )}
       </div>

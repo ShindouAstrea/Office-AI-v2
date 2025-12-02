@@ -27,6 +27,8 @@ export const translations = {
     "chat.no_peers": "No other users online",
     "chat.btn_create": "Create Room",
     "chat.empty": "Start the conversation in",
+    "chat.upload_error": "File too large (Max 800KB for text-db limit)",
+    "chat.file_type_error": "File type not supported",
     "room.global": "General",
 
     // Zones / Locations
@@ -121,6 +123,8 @@ export const translations = {
     "chat.no_peers": "No hay otros usuarios en línea",
     "chat.btn_create": "Crear Sala",
     "chat.empty": "Comienza la conversación en",
+    "chat.upload_error": "Archivo muy grande (Máx 800KB por límite BD texto)",
+    "chat.file_type_error": "Tipo de archivo no soportado",
     "room.global": "General",
 
     // Zones

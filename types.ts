@@ -63,12 +63,20 @@ export interface MapZone {
   type: 'KITCHEN' | 'BATHROOM' | 'OFFICE';
 }
 
+export interface Attachment {
+  type: 'image' | 'file';
+  url: string; // Base64 string for this implementation
+  name: string;
+  size: number;
+}
+
 export interface ChatMessage {
   id: string;
   roomId: string; // New field to link message to a room
   senderId: string;
   senderName: string;
   text: string;
+  attachment?: Attachment; // Optional attachment
   timestamp: number;
   isPrivate: boolean;
   targetId?: string;
