@@ -46,7 +46,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   };
 
   return (
-    <div className={`fixed bottom-4 left-4 w-96 bg-gray-900/90 backdrop-blur-md border border-gray-700 rounded-xl shadow-2xl flex flex-col transition-all duration-300 ${aiActive ? 'h-[500px]' : 'h-[350px]'}`}>
+    <div className={`fixed bottom-4 right-4 w-96 bg-gray-900/90 backdrop-blur-md border border-gray-700 rounded-xl shadow-2xl flex flex-col transition-all duration-300 z-40 ${aiActive ? 'h-[500px]' : 'h-[350px]'}`}>
       
       {/* Header */}
       <div className="flex border-b border-gray-700">

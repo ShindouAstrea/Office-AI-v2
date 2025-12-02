@@ -1,20 +1,22 @@
 import React from 'react';
-import { Mic, MicOff, Video, VideoOff, Monitor, LayoutGrid, Settings } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, Monitor, LayoutGrid, Settings, MessageSquare, MessageSquareOff } from 'lucide-react';
 
 interface ControlBarProps {
   micOn: boolean;
   camOn: boolean;
   sharingScreen: boolean;
   buildMode: boolean;
+  chatVisible: boolean;
   onToggleMic: () => void;
   onToggleCam: () => void;
   onToggleScreen: () => void;
   onToggleBuild: () => void;
+  onToggleChat: () => void;
 }
 
 const ControlBar: React.FC<ControlBarProps> = ({
-  micOn, camOn, sharingScreen, buildMode,
-  onToggleMic, onToggleCam, onToggleScreen, onToggleBuild
+  micOn, camOn, sharingScreen, buildMode, chatVisible,
+  onToggleMic, onToggleCam, onToggleScreen, onToggleBuild, onToggleChat
 }) => {
   const btnClass = "p-3 rounded-full backdrop-blur-md transition-all duration-200 flex items-center justify-center shadow-lg active:scale-95";
   const activeClass = "bg-indigo-600 text-white hover:bg-indigo-700";
@@ -37,6 +39,14 @@ const ControlBar: React.FC<ControlBarProps> = ({
       </button>
 
       <div className="w-px h-8 bg-gray-600 mx-2"></div>
+
+      <button 
+        onClick={onToggleChat} 
+        className={`${btnClass} ${chatVisible ? activeClass : neutralClass}`}
+        title={chatVisible ? "Hide Chat" : "Show Chat"}
+      >
+        {chatVisible ? <MessageSquare size={20} /> : <MessageSquareOff size={20} />}
+      </button>
 
       <button 
         onClick={onToggleBuild} 

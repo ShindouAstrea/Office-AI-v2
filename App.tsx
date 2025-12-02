@@ -16,12 +16,20 @@ const App: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [buildMode, setBuildMode] = useState(false);
   const [interactionTarget, setInteractionTarget] = useState<string | null>(null);
+  
+  // Chat State
   const [aiChatOpen, setAiChatOpen] = useState(false);
+  const [chatVisible, setChatVisible] = useState(true);
   
   // Media State
   const [micOn, setMicOn] = useState(false);
   const [camOn, setCamOn] = useState(false);
   const [sharingScreen, setSharingScreen] = useState(false);
+
+  // Media Streams (Refs to hold stream objects without re-renders)
+  const localMicStreamRef = useRef<MediaStream | null>(null);
+  const localCamStreamRef = useRef<MediaStream | null>(null);
+  const localScreenStreamRef = useRef<MediaStream | null>(null);
 
   // AI State
   const [aiResponse, setAiResponse] = useState('');
@@ -98,9 +106,7 @@ const App: React.FC = () => {
   const handleInteract = (targetId: string | null) => {
       setInteractionTarget(targetId);
       if (targetId === 'npc-gemini' && !aiChatOpen) {
-          // Show tooltip or auto open? 
-          // For now we assume a manual toggle or keypress logic in canvas, 
-          // but let's just use a UI prompt
+          // Interaction hint handled by UI
       } else if (targetId === null && aiChatOpen) {
            setAiChatOpen(false);
       }
@@ -120,10 +126,7 @@ const App: React.FC = () => {
   const handleSendAI = async (text: string) => {
       if (!chatSessionRef.current) return;
       setIsAiThinking(true);
-      setAiResponse(''); // Clear previous response context visually if needed, or append.
-      
-      // Add user message to local chat mainly for UI feedback, 
-      // though typically we'd separate AI chat history from global chat.
+      setAiResponse('');
       
       try {
           const result = await chatSessionRef.current.sendMessageStream({ message: text });
@@ -137,18 +140,65 @@ const App: React.FC = () => {
       }
   };
 
+  const handleToggleMic = async () => {
+    if (micOn) {
+        // Turn off
+        if (localMicStreamRef.current) {
+            localMicStreamRef.current.getTracks().forEach(track => track.stop());
+            localMicStreamRef.current = null;
+        }
+        setMicOn(false);
+    } else {
+        // Turn on
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            localMicStreamRef.current = stream;
+            setMicOn(true);
+        } catch (error) {
+            console.error("Microphone access denied:", error);
+            alert("Could not access microphone. Please check your browser permissions.");
+        }
+    }
+  };
+
+  const handleToggleCam = async () => {
+    if (camOn) {
+        // Turn off
+        if (localCamStreamRef.current) {
+            localCamStreamRef.current.getTracks().forEach(track => track.stop());
+            localCamStreamRef.current = null;
+        }
+        setCamOn(false);
+    } else {
+        // Turn on
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            localCamStreamRef.current = stream;
+            setCamOn(true);
+        } catch (error) {
+            console.error("Camera access denied:", error);
+            alert("Could not access camera. Please check your browser permissions.");
+        }
+    }
+  };
+
   const handleToggleScreen = async () => {
     if (sharingScreen) {
+        if (localScreenStreamRef.current) {
+            localScreenStreamRef.current.getTracks().forEach(track => track.stop());
+            localScreenStreamRef.current = null;
+        }
         setSharingScreen(false);
-        // Logic to stop tracks would go here in a full WebRTC implementation
     } else {
         try {
             const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+            localScreenStreamRef.current = stream;
             setSharingScreen(true);
             
             // Handle user stopping share from browser UI
             stream.getVideoTracks()[0].onended = () => {
                 setSharingScreen(false);
+                localScreenStreamRef.current = null;
             };
         } catch (error) {
             console.error("Screen share cancelled or failed:", error);
@@ -185,27 +235,34 @@ const App: React.FC = () => {
         
         <ControlBar 
             micOn={micOn} camOn={camOn} sharingScreen={sharingScreen} buildMode={buildMode}
-            onToggleMic={() => setMicOn(!micOn)}
-            onToggleCam={() => setCamOn(!camOn)}
+            chatVisible={chatVisible}
+            onToggleMic={handleToggleMic}
+            onToggleCam={handleToggleCam}
             onToggleScreen={handleToggleScreen}
             onToggleBuild={() => setBuildMode(!buildMode)}
+            onToggleChat={() => setChatVisible(!chatVisible)}
         />
 
-        <ChatWidget 
-            messages={messages}
-            onSendMessage={handleSendMessage}
-            aiActive={aiChatOpen}
-            onCloseAI={() => setAiChatOpen(false)}
-            onSendAI={handleSendAI}
-            aiResponse={aiResponse}
-            isAiThinking={isAiThinking}
-        />
+        <div className={chatVisible ? '' : 'hidden'}>
+            <ChatWidget 
+                messages={messages}
+                onSendMessage={handleSendMessage}
+                aiActive={aiChatOpen}
+                onCloseAI={() => setAiChatOpen(false)}
+                onSendAI={handleSendAI}
+                aiResponse={aiResponse}
+                isAiThinking={isAiThinking}
+            />
+        </div>
 
         {/* Key Listener for Interaction */}
         <KeyListener 
             target={interactionTarget} 
             onInteract={() => {
-                if (interactionTarget === 'npc-gemini') setAiChatOpen(true);
+                if (interactionTarget === 'npc-gemini') {
+                    setAiChatOpen(true);
+                    setChatVisible(true); // Ensure chat is visible when talking to AI
+                }
             }} 
         />
     </div>
