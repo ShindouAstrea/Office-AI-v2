@@ -19,7 +19,6 @@ import { useLanguage } from './contexts/LanguageContext';
 import { X, Circle, RotateCcw, XOctagon } from 'lucide-react';
 
 // --- INLINED TIC-TAC-TOE COMPONENT ---
-// Inlined to resolve module resolution issues while keeping file structure simple
 interface TicTacToeProps {
   onClose: () => void;
 }
@@ -550,8 +549,9 @@ const App: React.FC = () => {
       if (!buildMode) return;
 
       if (selectedFurnitureType === FurnitureType.DELETE) {
+          // FIX: Filter keeps items that are NOT at the click position
           const newFurniture = furniture.filter(f => 
-              Math.abs(f.position.x - pos.x) < 0.5 && Math.abs(f.position.y - pos.y) < 0.5
+              !(Math.abs(f.position.x - pos.x) < 0.5 && Math.abs(f.position.y - pos.y) < 0.5)
           );
           
           if (newFurniture.length !== furniture.length) {
