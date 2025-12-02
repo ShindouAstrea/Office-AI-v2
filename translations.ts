@@ -37,6 +37,7 @@ export const translations = {
     "loc.office1": "Private Office 1",
     "loc.office2": "Dev Office",
     "loc.open": "Open Space",
+    "loc.gameroom": "Arcade Room", // New
     "notify.enter": "Entered",
 
     // Participants
@@ -55,6 +56,9 @@ export const translations = {
     "build.hint": "Select an item to move/rotate it, or choose a new item to place.",
     "build.erase": "ERASE",
     "build.select": "SELECT / MOVE",
+    "build.reset": "RESET MAP",
+    "build.reset_confirm": "Are you sure you want to reset the map? All changes will be lost.",
+    "build.reset_success": "Map reset to initial configuration",
     "cat.structure": "Structure",
     "cat.office": "Office",
     "cat.lounge": "Lounge",
@@ -144,6 +148,7 @@ export const translations = {
     "loc.office1": "Oficina Privada 1",
     "loc.office2": "Oficina Desarrollo",
     "loc.open": "Espacio Común",
+    "loc.gameroom": "Sala de Juegos", // New
     "notify.enter": "Has ingresado a",
 
     // Participants
@@ -162,6 +167,9 @@ export const translations = {
     "build.hint": "Selecciona un objeto para moverlo/girarlo, o elige uno nuevo para colocar.",
     "build.erase": "BORRAR",
     "build.select": "SELECCIONAR",
+    "build.reset": "RESTAURAR MAPA",
+    "build.reset_confirm": "¿Estás seguro de que quieres restaurar el mapa original? Esto borrará todos los cambios actuales.",
+    "build.reset_success": "Mapa restaurado a la configuración inicial",
     "cat.structure": "Estructura",
     "cat.office": "Oficina",
     "cat.lounge": "Sala",

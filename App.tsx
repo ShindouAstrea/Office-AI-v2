@@ -365,6 +365,15 @@ const App: React.FC = () => {
       }
   };
 
+  // --- RESET MAP HANDLER ---
+  const handleResetMap = () => {
+      if (window.confirm(t('build.reset_confirm'))) {
+          setFurniture(INITIAL_FURNITURE);
+          persistMapChange(INITIAL_FURNITURE);
+          showNotification(t('build.reset_success'), "info");
+      }
+  };
+
   const handleCreateRoom = async (name: string, participants: string[]) => {
       if (!currentUser) return;
       
@@ -661,7 +670,8 @@ const App: React.FC = () => {
             selectedVariant={selectedVariant}
             selectedRotation={selectedRotation}
             onSelect={handleSelectFurniture}
-            onRotate={handleManualRotate} 
+            onRotate={handleManualRotate}
+            onReset={handleResetMap}
           />
         )}
 

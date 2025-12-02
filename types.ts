@@ -62,7 +62,7 @@ export interface MapZone {
   y: number;
   w: number;
   h: number;
-  type: 'KITCHEN' | 'BATHROOM' | 'OFFICE';
+  type: 'KITCHEN' | 'BATHROOM' | 'OFFICE' | 'GAME_ROOM';
 }
 
 export interface Attachment {

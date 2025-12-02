@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FurnitureType } from '../types';
 import { 
     LayoutGrid, Monitor, Coffee, Armchair, Book, Printer, Lightbulb, 
-    Square, Type, Utensils, Flower2, Table, Box, Trash2, Home, Briefcase, Sofa, Palette, RotateCw, Gamepad2
+    Square, Type, Utensils, Flower2, Table, Box, Trash2, Home, Briefcase, Sofa, Palette, RotateCw, MousePointer2, Gamepad2, RotateCcw
 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -12,9 +12,10 @@ interface BuildMenuProps {
   selectedRotation: number;
   onSelect: (type: FurnitureType, variant: number, rotation: number) => void;
   onRotate: () => void;
+  onReset: () => void; // New prop for resetting map
 }
 
-const BuildMenu: React.FC<BuildMenuProps> = ({ selectedType, selectedVariant, selectedRotation, onSelect, onRotate }) => {
+const BuildMenu: React.FC<BuildMenuProps> = ({ selectedType, selectedVariant, selectedRotation, onSelect, onRotate, onReset }) => {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState('structure');
 
@@ -94,21 +95,43 @@ const BuildMenu: React.FC<BuildMenuProps> = ({ selectedType, selectedVariant, se
             <h2 className="text-white font-bold text-lg flex items-center gap-3">
                 <LayoutGrid size={24} className="text-orange-500"/> {t('build.mode')}
             </h2>
-            <div className="flex gap-2">
-                <button
-                    onClick={() => onSelect(FurnitureType.DELETE, 0, 0)}
-                    className={`px-4 py-2 rounded-lg flex items-center gap-2 text-xs font-bold transition-colors border ${
-                        selectedType === FurnitureType.DELETE 
-                        ? 'bg-red-500/20 text-red-400 border-red-500/50' 
-                        : 'bg-gray-800 text-gray-400 border-gray-600 hover:text-white'
-                    }`}
-                >
-                    <Trash2 size={16} /> {t('build.erase')}
-                </button>
-            </div>
+            
+            {/* RESET BUTTON */}
+            <button
+                onClick={onReset}
+                className="px-3 py-2 rounded-lg flex items-center gap-2 text-xs font-bold transition-colors border bg-amber-500/20 text-amber-400 border-amber-500/50 hover:text-white hover:bg-amber-600"
+                title="Restaurar mapa por defecto"
+            >
+                <RotateCcw size={16} /> {t('build.reset')}
+            </button>
          </div>
          
-         {selectedType !== FurnitureType.DELETE && (
+         {/* Tools Row */}
+         <div className="flex gap-2 justify-between">
+             <button
+                onClick={() => onSelect(FurnitureType.SELECT, 0, 0)}
+                className={`flex-1 px-4 py-2 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-colors border ${
+                    selectedType === FurnitureType.SELECT 
+                    ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/50 ring-2 ring-indigo-500/30' 
+                    : 'bg-gray-800 text-gray-400 border-gray-600 hover:text-white'
+                }`}
+            >
+                <MousePointer2 size={16} /> {t('build.select')}
+            </button>
+
+            <button
+                onClick={() => onSelect(FurnitureType.DELETE, 0, 0)}
+                className={`flex-1 px-4 py-2 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-colors border ${
+                    selectedType === FurnitureType.DELETE 
+                    ? 'bg-red-500/20 text-red-400 border-red-500/50 ring-2 ring-red-500/30' 
+                    : 'bg-gray-800 text-gray-400 border-gray-600 hover:text-white'
+                }`}
+            >
+                <Trash2 size={16} /> {t('build.erase')}
+            </button>
+         </div>
+         
+         {(selectedType !== FurnitureType.DELETE && selectedType !== FurnitureType.SELECT) && (
              <div className="flex justify-between items-center bg-gray-900/50 p-2 rounded-lg border border-gray-700">
                  <span className="text-xs text-gray-400 font-mono">ROTATION: {selectedRotation}°</span>
                  <button 
