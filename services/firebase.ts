@@ -14,6 +14,7 @@ const firebaseConfig = {
   messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.FIREBASE_APP_ID
 };
+
 let db: any = null;
 
 try {
@@ -42,14 +43,16 @@ const DOCS = {
 // --- API ---
 
 export const loadFurnitureMap = async (): Promise<Furniture[] | null> => {
-  if (!db) return null; // Graceful fallback, do not throw
+  if (!db) return null;
   
   try {
     const docRef = doc(db, COLLECTIONS.OFFICE, DOCS.MAIN_MAP);
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
-      return docSnap.data().furniture as Furniture[];
+      const data = docSnap.data();
+      // Validate furniture is an array
+      return Array.isArray(data.furniture) ? data.furniture : [];
     } else {
       return null; 
     }
@@ -72,12 +75,15 @@ export const saveFurnitureMap = async (furniture: Furniture[]) => {
 };
 
 export const loadChatHistory = async (): Promise<ChatMessage[]> => {
-    if (!db) return []; // Graceful fallback
+    if (!db) return [];
     try {
         const docRef = doc(db, COLLECTIONS.OFFICE, DOCS.CHAT_LOG);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-            return docSnap.data().messages as ChatMessage[];
+            const data = docSnap.data();
+            // SAFETY CHECK: Ensure messages is actually an array. 
+            // If field is missing (deleted manually), return [] to allow app to sync.
+            return Array.isArray(data.messages) ? data.messages : [];
         }
         return [];
     } catch (error) {
@@ -90,6 +96,7 @@ export const saveChatMessage = async (message: ChatMessage) => {
     if (!db) throw new Error("Database not connected");
     try {
         const docRef = doc(db, COLLECTIONS.OFFICE, DOCS.CHAT_LOG);
+        // arrayUnion creates the array if it doesn't exist
         await setDoc(docRef, { 
             messages: arrayUnion(message),
             lastUpdated: Date.now()
@@ -102,12 +109,13 @@ export const saveChatMessage = async (message: ChatMessage) => {
 // --- ROOMS API ---
 
 export const loadChatRooms = async (): Promise<ChatRoom[]> => {
-    if (!db) return []; // Graceful fallback
+    if (!db) return [];
     try {
         const docRef = doc(db, COLLECTIONS.OFFICE, DOCS.CHAT_ROOMS);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-            return docSnap.data().rooms as ChatRoom[];
+            const data = docSnap.data();
+            return Array.isArray(data.rooms) ? data.rooms : [];
         }
         return [];
     } catch (error) {

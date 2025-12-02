@@ -544,6 +544,7 @@ const App: React.FC = () => {
           case FurnitureType.PRINTER:
           case FurnitureType.SINK:
               return 'TOP';
+          case FurnitureType.ARCADE: return 'BASE';
           default: return 'BASE';
       }
   };
@@ -554,13 +555,18 @@ const App: React.FC = () => {
       return 0.5; 
   };
 
-  const handlePlaceFurniture = (pos: Position) => {
+  const handlePlaceFurniture = (pixelPos: Position) => {
       if (!buildMode) return;
+      
+      // Convert pixel to grid coordinates
+      const gridPos = {
+          x: pixelPos.x / TILE_SIZE,
+          y: pixelPos.y / TILE_SIZE
+      };
 
       if (selectedFurnitureType === FurnitureType.DELETE) {
-          // FIX: Filter keeps items that are NOT at the click position
           const newFurniture = furniture.filter(f => 
-              !(Math.abs(f.position.x - pos.x) < 0.5 && Math.abs(f.position.y - pos.y) < 0.5)
+              !(Math.abs(f.position.x - gridPos.x) < 0.5 && Math.abs(f.position.y - gridPos.y) < 0.5)
           );
           
           if (newFurniture.length !== furniture.length) {
@@ -572,7 +578,7 @@ const App: React.FC = () => {
 
       if (selectedFurnitureType === FurnitureType.SELECT) {
           const clickedItem = furniture.find(f => 
-              Math.abs(f.position.x - pos.x) < 0.5 && Math.abs(f.position.y - pos.y) < 0.5
+              Math.abs(f.position.x - gridPos.x) < 0.5 && Math.abs(f.position.y - gridPos.y) < 0.5
           );
 
           if (clickedItem) {
@@ -582,8 +588,8 @@ const App: React.FC = () => {
               const selectedItem = furniture.find(f => f.id === selectedObjectId);
               if (selectedItem) {
                   const snap = getSnapPrecision(selectedItem.type);
-                  const snappedX = Math.round(pos.x / snap) * snap;
-                  const snappedY = Math.round(pos.y / snap) * snap;
+                  const snappedX = Math.round(gridPos.x / snap) * snap;
+                  const snappedY = Math.round(gridPos.y / snap) * snap;
 
                   const newFurnList = furniture.map(f => {
                       if (f.id === selectedObjectId) {
@@ -603,8 +609,8 @@ const App: React.FC = () => {
       }
 
       const snap = getSnapPrecision(selectedFurnitureType);
-      const snappedX = Math.round(pos.x / snap) * snap;
-      const snappedY = Math.round(pos.y / snap) * snap;
+      const snappedX = Math.round(gridPos.x / snap) * snap;
+      const snappedY = Math.round(gridPos.y / snap) * snap;
       
       const targetLayer = getFurnitureLayer(selectedFurnitureType);
       
