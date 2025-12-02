@@ -1,13 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Player, Furniture, ChatMessage, Position, FurnitureType } from './types';
-import { INITIAL_FURNITURE, TILE_SIZE, MAP_WIDTH, MAP_HEIGHT, AVATAR_COLORS } from './constants';
+import { INITIAL_FURNITURE, TILE_SIZE, AVATAR_COLORS } from './constants';
 import GameCanvas from './components/GameCanvas';
 import AvatarCreator from './components/AvatarCreator';
 import ChatWidget from './components/ChatWidget';
 import ControlBar from './components/ControlBar';
 import VideoOverlay from './components/VideoOverlay';
-import { getGeminiChat } from './services/gemini';
-import { Chat } from "@google/genai";
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<Player | null>(null);
@@ -18,7 +16,6 @@ const App: React.FC = () => {
   const [interactionTarget, setInteractionTarget] = useState<string | null>(null);
   
   // Chat State
-  const [aiChatOpen, setAiChatOpen] = useState(false);
   const [chatVisible, setChatVisible] = useState(true);
   
   // Media State
@@ -30,11 +27,6 @@ const App: React.FC = () => {
   const localMicStreamRef = useRef<MediaStream | null>(null);
   const localCamStreamRef = useRef<MediaStream | null>(null);
   const localScreenStreamRef = useRef<MediaStream | null>(null);
-
-  // AI State
-  const [aiResponse, setAiResponse] = useState('');
-  const [isAiThinking, setIsAiThinking] = useState(false);
-  const chatSessionRef = useRef<Chat | null>(null);
 
   // Simulate peers moving
   useEffect(() => {
@@ -58,17 +50,6 @@ const App: React.FC = () => {
     }, 100);
 
     return () => clearInterval(interval);
-  }, [currentUser]);
-
-  // Initialize Chat Session
-  useEffect(() => {
-      if (currentUser && !chatSessionRef.current) {
-          try {
-              chatSessionRef.current = getGeminiChat();
-          } catch (e) {
-              console.error("Gemini init failed", e);
-          }
-      }
   }, [currentUser]);
 
 
@@ -105,11 +86,6 @@ const App: React.FC = () => {
 
   const handleInteract = (targetId: string | null) => {
       setInteractionTarget(targetId);
-      if (targetId === 'npc-gemini' && !aiChatOpen) {
-          // Interaction hint handled by UI
-      } else if (targetId === null && aiChatOpen) {
-           setAiChatOpen(false);
-      }
   };
 
   const handlePlaceFurniture = (pos: Position) => {
@@ -121,23 +97,6 @@ const App: React.FC = () => {
           rotation: 0
       };
       setFurniture(prev => [...prev, newFurn]);
-  };
-
-  const handleSendAI = async (text: string) => {
-      if (!chatSessionRef.current) return;
-      setIsAiThinking(true);
-      setAiResponse('');
-      
-      try {
-          const result = await chatSessionRef.current.sendMessageStream({ message: text });
-          for await (const chunk of result) {
-              setAiResponse(prev => prev + chunk.text);
-          }
-      } catch (e) {
-          setAiResponse("I'm having trouble connecting to the office servers right now.");
-      } finally {
-          setIsAiThinking(false);
-      }
   };
 
   const handleToggleMic = async () => {
@@ -223,13 +182,6 @@ const App: React.FC = () => {
             onPlaceFurniture={handlePlaceFurniture}
         />
 
-        {/* Interaction Prompt */}
-        {interactionTarget === 'npc-gemini' && !aiChatOpen && (
-            <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 mt-16 bg-white text-black px-4 py-2 rounded-full shadow-lg font-bold animate-bounce z-50">
-                Press E to talk to Receptionist
-            </div>
-        )}
-
         {/* HUD Elements */}
         <VideoOverlay peers={peers} currentUserPos={currentUser.position} camOn={camOn} />
         
@@ -247,40 +199,10 @@ const App: React.FC = () => {
             <ChatWidget 
                 messages={messages}
                 onSendMessage={handleSendMessage}
-                aiActive={aiChatOpen}
-                onCloseAI={() => setAiChatOpen(false)}
-                onSendAI={handleSendAI}
-                aiResponse={aiResponse}
-                isAiThinking={isAiThinking}
             />
         </div>
-
-        {/* Key Listener for Interaction */}
-        <KeyListener 
-            target={interactionTarget} 
-            onInteract={() => {
-                if (interactionTarget === 'npc-gemini') {
-                    setAiChatOpen(true);
-                    setChatVisible(true); // Ensure chat is visible when talking to AI
-                }
-            }} 
-        />
     </div>
   );
 };
-
-// Helper for key interaction
-const KeyListener: React.FC<{ target: string | null, onInteract: () => void }> = ({ target, onInteract }) => {
-    useEffect(() => {
-        const handler = (e: KeyboardEvent) => {
-            if (e.key === 'e' || e.key === 'E') {
-                if (target) onInteract();
-            }
-        };
-        window.addEventListener('keydown', handler);
-        return () => window.removeEventListener('keydown', handler);
-    }, [target, onInteract]);
-    return null;
-}
 
 export default App;

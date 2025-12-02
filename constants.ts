@@ -92,6 +92,3 @@ export const INITIAL_FURNITURE: Furniture[] = [
     // Reception Desk
     { id: 'recep-1', type: FurnitureType.DESK, position: { x: 28, y: 19 }, rotation: 0 },
 ];
-
-export const AI_NPC_POSITION = { x: 29 * TILE_SIZE + TILE_SIZE/2, y: 20 * TILE_SIZE };
-export const AI_NPC_NAME = "Nova (AI)";

@@ -1,6 +1,6 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Player, Furniture, FurnitureType, Position } from '../types';
-import { TILE_SIZE, MOVE_SPEED, INTERACTION_RADIUS, AI_NPC_POSITION } from '../constants';
+import { TILE_SIZE, MOVE_SPEED } from '../constants';
 
 interface GameCanvasProps {
   currentUser: Player;
@@ -103,18 +103,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     if (moved) {
         onMove({ ...currentPosRef.current });
     }
-
-    // Check interactions
-    const distToNPC = Math.sqrt(
-        Math.pow(currentPosRef.current.x - AI_NPC_POSITION.x, 2) + 
-        Math.pow(currentPosRef.current.y - AI_NPC_POSITION.y, 2)
-    );
-    
-    if (distToNPC < INTERACTION_RADIUS + 20) {
-        onInteract('npc-gemini');
-    } else {
-        onInteract(null);
-    }
     
     frameCountRef.current++;
   };
@@ -125,8 +113,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       x: number, 
       y: number, 
       color: string, 
-      isWalking: boolean,
-      isNpc: boolean = false
+      isWalking: boolean
   ) => {
       const tick = Math.floor(Date.now() / 150); // Animation speed
       // Bobbing effect (entire body moves up/down)
@@ -150,7 +137,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       ctx.fillRect(x + 1, y - 8 + rightLegY, 4, 8);
 
       // --- BODY (Tunic/Armor) ---
-      ctx.fillStyle = isNpc ? '#8b5cf6' : color;
+      ctx.fillStyle = color;
       ctx.fillRect(x - 6, y - 18 + bob, 12, 12);
       
       // Belt
@@ -164,57 +151,44 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       const leftArmSwing = isWalking && tick % 4 === 2 ? 3 : 0; // Opposite right leg
       const rightArmSwing = isWalking && tick % 4 === 0 ? 3 : 0; // Opposite left leg
       
-      ctx.fillStyle = isNpc ? '#8b5cf6' : color; // Sleeve color matches body
+      ctx.fillStyle = color; // Sleeve color matches body
       // Left Arm
       ctx.fillRect(x - 9, y - 17 + bob + leftArmSwing, 3, 8);
       // Right Arm
       ctx.fillRect(x + 6, y - 17 + bob + rightArmSwing, 3, 8);
       
       // Hands
-      ctx.fillStyle = isNpc ? '#d1d8e0' : '#ffccaa';
+      ctx.fillStyle = '#ffccaa';
       ctx.fillRect(x - 9, y - 9 + bob + leftArmSwing, 3, 3);
       ctx.fillRect(x + 6, y - 9 + bob + rightArmSwing, 3, 3);
 
       // --- HEAD ---
       // Skin
-      ctx.fillStyle = isNpc ? '#d1d8e0' : '#ffccaa'; 
+      ctx.fillStyle = '#ffccaa'; 
       ctx.fillRect(x - 7, y - 29 + bob, 14, 12);
       
       // Eyes (Anime/RPG style)
       ctx.fillStyle = '#000';
-      if (isNpc) {
-          // Visor
-          ctx.fillStyle = '#00d2d3';
-          ctx.fillRect(x - 6, y - 25 + bob, 12, 4);
-      } else {
-          // Eyes
-          ctx.fillRect(x - 5, y - 25 + bob, 3, 4);
-          ctx.fillRect(x + 2, y - 25 + bob, 3, 4);
-          // Sparkle
-          ctx.fillStyle = '#fff';
-          ctx.fillRect(x - 4, y - 25 + bob, 1, 2);
-          ctx.fillRect(x + 3, y - 25 + bob, 1, 2);
-      }
+      
+      // Eyes
+      ctx.fillRect(x - 5, y - 25 + bob, 3, 4);
+      ctx.fillRect(x + 2, y - 25 + bob, 3, 4);
+      // Sparkle
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(x - 4, y - 25 + bob, 1, 2);
+      ctx.fillRect(x + 3, y - 25 + bob, 1, 2);
 
       // Hair (RPG style volume)
-      if (!isNpc) {
-        ctx.fillStyle = '#634228'; // Brown hair
-        // Top Helmet/Hair
-        ctx.fillRect(x - 8, y - 32 + bob, 16, 5);
-        // Sideburns / Back hair
-        ctx.fillRect(x - 8, y - 30 + bob, 3, 12);
-        ctx.fillRect(x + 5, y - 30 + bob, 3, 12);
-        // Bangs
-        ctx.fillRect(x - 5, y - 28 + bob, 2, 2);
-        ctx.fillRect(x + 3, y - 28 + bob, 2, 2);
-        ctx.fillRect(x - 1, y - 28 + bob, 2, 3);
-      } else {
-          // Robot Antenna
-          ctx.fillStyle = '#a55eea';
-          ctx.fillRect(x - 1, y - 34 + bob, 2, 6);
-          ctx.fillStyle = '#ff5252';
-          ctx.fillRect(x - 1, y - 35 + bob, 2, 2);
-      }
+      ctx.fillStyle = '#634228'; // Brown hair
+      // Top Helmet/Hair
+      ctx.fillRect(x - 8, y - 32 + bob, 16, 5);
+      // Sideburns / Back hair
+      ctx.fillRect(x - 8, y - 30 + bob, 3, 12);
+      ctx.fillRect(x + 5, y - 30 + bob, 3, 12);
+      // Bangs
+      ctx.fillRect(x - 5, y - 28 + bob, 2, 2);
+      ctx.fillRect(x + 3, y - 28 + bob, 2, 2);
+      ctx.fillRect(x - 1, y - 28 + bob, 2, 3);
   };
 
   const draw = (ctx: CanvasRenderingContext2D) => {
@@ -279,8 +253,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     const renderables = [
         ...furniture.filter(f => f.type !== FurnitureType.FLOOR).map(f => ({ type: 'furniture', data: f, y: f.position.y * TILE_SIZE })),
         ...peers.map(p => ({ type: 'peer', data: p, y: p.position.y })),
-        { type: 'player', data: currentUser, y: currentPosRef.current.y },
-        { type: 'npc', data: { position: AI_NPC_POSITION }, y: AI_NPC_POSITION.y }
+        { type: 'player', data: currentUser, y: currentPosRef.current.y }
     ];
 
     renderables.sort((a, b) => a.y - b.y);
@@ -368,26 +341,13 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
                 ctx.fillRect(x + 16, y + 36, 16, 4); // Base
             }
         } 
-        else if (item.type === 'npc') {
-             drawPixelCharacter(ctx, AI_NPC_POSITION.x, AI_NPC_POSITION.y, '', false, true);
-             
-             // Name Tag
-             ctx.fillStyle = 'rgba(0,0,0,0.5)';
-             ctx.beginPath();
-             ctx.roundRect(AI_NPC_POSITION.x - 30, AI_NPC_POSITION.y - 45, 60, 16, 4);
-             ctx.fill();
-             ctx.fillStyle = '#d1d8e0'; // Robot grey
-             ctx.font = '10px "Courier New", monospace';
-             ctx.textAlign = 'center';
-             ctx.fillText("NOVA-AI", AI_NPC_POSITION.x, AI_NPC_POSITION.y - 34);
-        }
         else {
             const p = item.data as Player;
             // Determine if moving (peers)
             const isPeer = p.id !== currentUser.id;
             const isWalking = isPeer ? Math.random() > 0.5 : isMovingRef.current; // Mock peer movement
             
-            drawPixelCharacter(ctx, p.position.x, p.position.y, p.color, isWalking, false);
+            drawPixelCharacter(ctx, p.position.x, p.position.y, p.color, isWalking);
 
             // Name Tag
             ctx.fillStyle = 'rgba(0,0,0,0.5)';
