@@ -2,6 +2,9 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore, doc, getDoc, setDoc, arrayUnion } from 'firebase/firestore';
 import { Furniture, ChatMessage, ChatRoom } from '../types';
 
+// Declare process to avoid TS2580 if @types/node is not loaded
+declare const process: { env: Record<string, string | undefined> };
+
 // Safe configuration: allows the app to load even if env vars are missing (starts in offline mode)
 const firebaseConfig = {
   apiKey: process.env.FIREBASE_API_KEY || "demo-key",
