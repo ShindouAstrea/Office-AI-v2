@@ -25,8 +25,10 @@ export enum FurnitureType {
   WHITEBOARD = 'WHITEBOARD',
   PRINTER = 'PRINTER',
   LAMP = 'LAMP',
+  ARCADE = 'ARCADE', // New Mini-game object
   // Tool types
-  DELETE = 'DELETE'
+  DELETE = 'DELETE',
+  SELECT = 'SELECT'
 }
 
 export interface Position {

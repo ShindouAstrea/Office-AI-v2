@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Player, Furniture, FurnitureType, Position } from '../types';
 import { TILE_SIZE, MOVE_SPEED, MAP_ZONES } from '../constants';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -11,6 +11,9 @@ interface GameCanvasProps {
   onInteract: (targetId: string | null) => void;
   buildMode: boolean;
   onPlaceFurniture: (pos: Position) => void;
+  selectedFurnitureType?: FurnitureType;
+  selectedVariant?: number;
+  selectedRotation?: number;
 }
 
 interface Particle {
@@ -31,7 +34,10 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   onMove,
   onInteract,
   buildMode,
-  onPlaceFurniture
+  onPlaceFurniture,
+  selectedFurnitureType,
+  selectedVariant = 0,
+  selectedRotation = 0
 }) => {
   const { t } = useLanguage();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -43,6 +49,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const lastPosRef = useRef<Position>(currentUser.position);
   const isMovingRef = useRef<boolean>(false);
   const frameCountRef = useRef<number>(0);
+
+  // Mouse position for building
+  const mousePosRef = useRef<Position>({ x: 0, y: 0 });
 
   // Visual effects state
   const particlesRef = useRef<Particle[]>([]);
@@ -284,6 +293,35 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       ctx.fillRect(x + 3, y - 28 + bob, 2, 2);
   };
 
+  // Helper to determine layering order
+  const getLayerPriority = (type: FurnitureType): number => {
+        switch (type) {
+            case FurnitureType.RUG: return 0;
+            case FurnitureType.FLOOR: return 0;
+            // Ground level furniture
+            case FurnitureType.DESK:
+            case FurnitureType.TABLE_ROUND:
+            case FurnitureType.COUCH:
+            case FurnitureType.CHAIR:
+            case FurnitureType.TOILET:
+            case FurnitureType.BOOKSHELF:
+                return 1;
+            // Items that go ON TOP of desks/tables
+            case FurnitureType.SCREEN:
+            case FurnitureType.COFFEE_MAKER:
+            case FurnitureType.FOOD:
+            case FurnitureType.PRINTER:
+            case FurnitureType.SINK:
+            case FurnitureType.PLANT:
+            case FurnitureType.LAMP:
+                return 2;
+            case FurnitureType.WALL:
+                return 1; 
+            default:
+                return 1;
+        }
+  };
+
   const draw = (ctx: CanvasRenderingContext2D) => {
     // 1. Background
     ctx.fillStyle = '#111827'; // Dark outer void
@@ -376,22 +414,58 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         }
     });
 
-    // 3. Sort and Draw Entities
-    const renderables = [
+    // Create renderables list.
+    const renderList = [
         ...furniture.filter(f => f.position && f.type !== FurnitureType.RUG && f.type !== FurnitureType.FLOOR).map(f => ({ type: 'furniture', data: f, y: f.position.y * TILE_SIZE })),
         ...peers.map(p => ({ type: 'peer', data: p, y: p.position.y })),
         { type: 'player', data: currentUser, y: currentPosRef.current.y }
     ];
 
-    // Sort by Y for depth
-    renderables.sort((a, b) => a.y - b.y);
+    if (buildMode && selectedFurnitureType && selectedFurnitureType !== FurnitureType.DELETE) {
+        const gridX = Math.floor((mousePosRef.current.x + camX) / TILE_SIZE);
+        const gridY = Math.floor((mousePosRef.current.y + camY) / TILE_SIZE);
+        
+        const ghostFurniture: Furniture = {
+            id: 'ghost',
+            type: selectedFurnitureType,
+            position: { x: gridX, y: gridY },
+            rotation: selectedRotation || 0,
+            variant: selectedVariant || 0
+        };
+        
+        renderList.push({ type: 'ghost', data: ghostFurniture, y: gridY * TILE_SIZE });
+    }
 
-    renderables.forEach(item => {
-        if (item.type === 'furniture') {
+    // UPDATED SORTING: Prioritize Layer if Y is same
+    renderList.sort((a, b) => {
+        // 1. Sort by Y (Depth)
+        if (Math.abs(a.y - b.y) > 5) { // 5px tolerance
+            return a.y - b.y;
+        }
+
+        // 2. Sort by Layer Priority (Vertical Stacking)
+        const typeA = a.type === 'furniture' || a.type === 'ghost' ? (a.data as Furniture).type : null;
+        const typeB = b.type === 'furniture' || b.type === 'ghost' ? (b.data as Furniture).type : null;
+
+        if (typeA && typeB) {
+            return getLayerPriority(typeA) - getLayerPriority(typeB);
+        }
+
+        return a.y - b.y; // Fallback
+    });
+
+    renderList.forEach(item => {
+        if (item.type === 'furniture' || item.type === 'ghost') {
             const f = item.data as Furniture;
             if (!f.position) return;
             const x = f.position.x * TILE_SIZE;
             const y = f.position.y * TILE_SIZE;
+
+            // Apply transparency for ghost
+            if (item.type === 'ghost') {
+                ctx.save();
+                ctx.globalAlpha = 0.6;
+            }
 
             if (f.type === FurnitureType.WALL) {
                 // Pixel Art Wall
@@ -596,20 +670,23 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
                 ctx.fill();
             }
 
+            if (item.type === 'ghost') {
+                ctx.restore();
+            }
+
         } 
-        else {
+        else if (item.type === 'peer' || item.type === 'player') {
             const p = item.data as Player;
             const isPeer = p.id !== currentUser.id;
             const isWalking = isPeer ? Math.random() > 0.5 : isMovingRef.current;
             
             drawPixelCharacter(ctx, p.position.x, p.position.y, p.color, isWalking);
 
-            // Name Tag Only (Status removed from canvas)
+            // Name Tag Only
             ctx.fillStyle = 'rgba(0,0,0,0.6)';
             ctx.beginPath();
             const textWidth = ctx.measureText(p.name).width;
             
-            // Fixed height box for just name
             const boxHeight = 16;
             ctx.roundRect(p.position.x - textWidth/2 - 6, p.position.y - 50, textWidth + 12, boxHeight, 4);
             ctx.fill();
@@ -714,6 +791,15 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     return () => cancelAnimationFrame(requestRef.current);
   });
 
+  const handleMouseMove = (e: React.MouseEvent) => {
+      if (!canvasRef.current) return;
+      const rect = canvasRef.current.getBoundingClientRect();
+      mousePosRef.current = {
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top
+      };
+  };
+
   const handleCanvasClick = (e: React.MouseEvent) => {
       if (!buildMode || !canvasRef.current) return;
       
@@ -740,6 +826,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       height={window.innerHeight}
       className="block cursor-crosshair"
       onClick={handleCanvasClick}
+      onMouseMove={handleMouseMove}
       style={{ imageRendering: 'pixelated' }} 
     />
   );

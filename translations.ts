@@ -52,8 +52,9 @@ export const translations = {
 
     // Builder
     "build.mode": "BUILDER MODE",
-    "build.hint": "Select an item and click on the map to place it.",
+    "build.hint": "Select an item to move/rotate it, or choose a new item to place.",
     "build.erase": "ERASE",
+    "build.select": "SELECT / MOVE",
     "cat.structure": "Structure",
     "cat.office": "Office",
     "cat.lounge": "Lounge",
@@ -90,12 +91,22 @@ export const translations = {
     "furn.food": "Food Plate",
     "furn.sink": "Sink",
     "furn.toilet": "Toilet",
+    "furn.arcade": "Arcade Machine",
 
     // Interactions
     "interact.press": "Press E",
     "interact.coffee": "Make Coffee",
     "interact.wash": "Wash Hands",
     "interact.computer": "Use Computer",
+    "interact.play": "Play Arcade",
+
+    // Minigame
+    "game.tictactoe": "Tic-Tac-Toe",
+    "game.next_player": "Next Player",
+    "game.winner": "Winner",
+    "game.draw": "Draw!",
+    "game.reset": "Reset Game",
+    "game.close": "Close Game"
   },
   es: {
     // General
@@ -148,8 +159,9 @@ export const translations = {
 
     // Builder
     "build.mode": "MODO CONSTRUCTOR",
-    "build.hint": "Selecciona un objeto y haz clic en el mapa para colocarlo.",
+    "build.hint": "Selecciona un objeto para moverlo/girarlo, o elige uno nuevo para colocar.",
     "build.erase": "BORRAR",
+    "build.select": "SELECCIONAR",
     "cat.structure": "Estructura",
     "cat.office": "Oficina",
     "cat.lounge": "Sala",
@@ -186,11 +198,21 @@ export const translations = {
     "furn.food": "Plato Comida",
     "furn.sink": "Lavabo",
     "furn.toilet": "Inodoro",
+    "furn.arcade": "Máquina Arcade",
 
     // Interactions
     "interact.press": "Presiona E",
     "interact.coffee": "Preparar Café",
     "interact.wash": "Lavarse las Manos",
     "interact.computer": "Usar Computadora",
+    "interact.play": "Jugar Arcade",
+
+    // Minigame
+    "game.tictactoe": "Tres en Raya",
+    "game.next_player": "Turno Jugador",
+    "game.winner": "Ganador",
+    "game.draw": "Empate!",
+    "game.reset": "Reiniciar",
+    "game.close": "Salir"
   }
 };

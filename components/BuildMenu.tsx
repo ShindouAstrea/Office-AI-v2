@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FurnitureType } from '../types';
 import { 
     LayoutGrid, Monitor, Coffee, Armchair, Book, Printer, Lightbulb, 
-    Square, Type, Utensils, Flower2, Table, Box, Trash2, Home, Briefcase, Sofa, Palette, X
+    Square, Type, Utensils, Flower2, Table, Box, Trash2, Home, Briefcase, Sofa, Palette, RotateCw
 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -11,22 +11,22 @@ interface BuildMenuProps {
   selectedVariant: number;
   selectedRotation: number;
   onSelect: (type: FurnitureType, variant: number, rotation: number) => void;
+  onRotate: () => void;
 }
 
-const BuildMenu: React.FC<BuildMenuProps> = ({ selectedType, selectedVariant, selectedRotation, onSelect }) => {
+const BuildMenu: React.FC<BuildMenuProps> = ({ selectedType, selectedVariant, selectedRotation, onSelect, onRotate }) => {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState('structure');
 
+  // Removed duplicated H/V entries since we now support dynamic rotation
   const CATEGORIES = [
     {
         id: 'structure',
         label: t('cat.structure'),
         icon: <Home size={18} />,
         items: [
-            { type: FurnitureType.WALL, variant: 0, rotation: 0, label: t('furn.wall_brick_h') },
-            { type: FurnitureType.WALL, variant: 0, rotation: 90, label: t('furn.wall_brick_v') },
-            { type: FurnitureType.WALL, variant: 1, rotation: 0, label: t('furn.concrete_h') },
-            { type: FurnitureType.WALL, variant: 1, rotation: 90, label: t('furn.concrete_v') },
+            { type: FurnitureType.WALL, variant: 0, rotation: 0, label: 'Pared Ladrillo' }, 
+            { type: FurnitureType.WALL, variant: 1, rotation: 0, label: 'Concreto' },
             { type: FurnitureType.FLOOR, variant: 0, rotation: 0, label: t('furn.floor_wood') },
             { type: FurnitureType.FLOOR, variant: 1, rotation: 0, label: t('furn.floor_tile') },
             { type: FurnitureType.FLOOR, variant: 2, rotation: 0, label: t('furn.floor_dark') },
@@ -89,22 +89,36 @@ const BuildMenu: React.FC<BuildMenuProps> = ({ selectedType, selectedVariant, se
   return (
     <div className="fixed right-0 top-0 h-full w-[30%] min-w-[320px] bg-gray-900/95 backdrop-blur-xl border-l border-gray-700 shadow-2xl flex flex-col z-50 animate-fadeIn rounded-l-2xl">
        
-       <div className="p-5 border-b border-gray-700 flex justify-between items-center bg-gray-800/50 rounded-tl-2xl">
-         <h2 className="text-white font-bold text-lg flex items-center gap-3">
-            <LayoutGrid size={24} className="text-orange-500"/> {t('build.mode')}
-         </h2>
-         <div className="flex gap-2">
-            <button
-                onClick={() => onSelect(FurnitureType.DELETE, 0, 0)}
-                className={`px-4 py-2 rounded-lg flex items-center gap-2 text-xs font-bold transition-colors border ${
-                    selectedType === FurnitureType.DELETE 
-                    ? 'bg-red-500/20 text-red-400 border-red-500/50' 
-                    : 'bg-gray-800 text-gray-400 border-gray-600 hover:text-white'
-                }`}
-            >
-                <Trash2 size={16} /> {t('build.erase')}
-            </button>
+       <div className="p-5 border-b border-gray-700 flex flex-col gap-4 bg-gray-800/50 rounded-tl-2xl">
+         <div className="flex justify-between items-center">
+            <h2 className="text-white font-bold text-lg flex items-center gap-3">
+                <LayoutGrid size={24} className="text-orange-500"/> {t('build.mode')}
+            </h2>
+            <div className="flex gap-2">
+                <button
+                    onClick={() => onSelect(FurnitureType.DELETE, 0, 0)}
+                    className={`px-4 py-2 rounded-lg flex items-center gap-2 text-xs font-bold transition-colors border ${
+                        selectedType === FurnitureType.DELETE 
+                        ? 'bg-red-500/20 text-red-400 border-red-500/50' 
+                        : 'bg-gray-800 text-gray-400 border-gray-600 hover:text-white'
+                    }`}
+                >
+                    <Trash2 size={16} /> {t('build.erase')}
+                </button>
+            </div>
          </div>
+         
+         {selectedType !== FurnitureType.DELETE && (
+             <div className="flex justify-between items-center bg-gray-900/50 p-2 rounded-lg border border-gray-700">
+                 <span className="text-xs text-gray-400 font-mono">ROTATION: {selectedRotation}°</span>
+                 <button 
+                    onClick={onRotate}
+                    className="flex items-center gap-2 px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-bold transition-colors"
+                 >
+                     <RotateCw size={14} /> ROTATE (R)
+                 </button>
+             </div>
+         )}
        </div>
 
        <div className="flex border-b border-gray-700 overflow-x-auto custom-scrollbar bg-gray-900 shrink-0">
@@ -125,14 +139,13 @@ const BuildMenu: React.FC<BuildMenuProps> = ({ selectedType, selectedVariant, se
        <div className="flex-1 p-5 overflow-y-auto custom-scrollbar bg-gray-900/50">
            <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
                {currentCategory?.items.map((item, idx) => {
-                   const isSelected = selectedType === item.type && 
-                                      selectedVariant === item.variant && 
-                                      selectedRotation === item.rotation;
+                   // We ignore rotation in selection match because rotation is now dynamic
+                   const isSelected = selectedType === item.type && selectedVariant === item.variant;
                    
                    return (
                     <button
-                        key={`${item.type}-${item.variant}-${item.rotation}-${idx}`}
-                        onClick={() => onSelect(item.type, item.variant, item.rotation)}
+                        key={`${item.type}-${item.variant}-${idx}`}
+                        onClick={() => onSelect(item.type, item.variant, selectedRotation)}
                         className={`flex flex-col items-center p-4 rounded-xl transition-all border relative group aspect-square justify-center ${
                             isSelected 
                             ? 'bg-indigo-600 border-indigo-400 text-white shadow-xl ring-2 ring-indigo-400/50' 
