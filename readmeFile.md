@@ -48,19 +48,61 @@ Colección Raíz: virtual_office
 Crea una colección con el ID: virtual_office.
 Dentro de esta colección, crea los siguientes 3 Documentos:
 
-A. Documento del Mapa
-Document ID: main_map_v1
-Campos:
-furniture (Array): Deja este array vacío o añade un objeto dummy si la consola lo requiere.
-lastUpdated (Number): 0
-B. Documento del Chat Global
-Document ID: global_chat_v1
-Campos:
-messages (Array): Vacío.
-lastUpdated (Number): 0
-C. Documento de Salas Privadas
-Document ID: chat_rooms_v1
-Campos:
-rooms (Array): Vacío.
-lastUpdated (Number): 0
+- A. Documento del Mapa
+  - Document ID: main_map_v1
+  - Campos:
+    - furniture (Array): Deja este array vacío o añade un objeto dummy si la consola lo requiere.
+    - lastUpdated (Number): 0
+    - json: ejemplo
+      ```json
+      {
+        "tipos_validos":["WALL", "FLOOR", "DESK", "CHAIR", "PLANT", "COFFEE_MAKER", "SCREEN", "TOILET", "SINK", "FOOD", "TABLE_ROUND", "RUG", "BOOKSHELF",
+         "COUCH", "WHITEBOARD", "PRINTER", "LAMP"]
+      },
+              {
+          "id": "desk-17100023",
+          "type": "DESK",          // Ver lista de Tipos Válidos abajo
+          "position": {
+            "x": 15,               // Coordenada Grid X
+            "y": 10                // Coordenada Grid Y
+          },
+          "rotation": 0,           // 0, 90, 180, 270
+          "variant": 0             // 0 (Default), 1 (Alt), 2...
+        }
+      ```
+- B. Documento del Chat Global
+  - Document ID: global_chat_v1
+  - Campos:
+    - messages (Array): Vacío.
+    - lastUpdated (Number): 0
+    - json ejemplo
+    ```json
+          {
+        "id": "msg-123456789",
+        "roomId": "global",      // 'global' o el ID de una sala privada
+        "senderId": "user-abc",
+        "senderName": "Juan",
+        "text": "Hola a todos",
+        "timestamp": 1710000000,
+        "isPrivate": false
+      }
+    ```
+- C. Documento de Salas Privadas
+  - Document ID: chat_rooms_v1
+  - Campos:
+    - rooms (Array): Vacío.
+    - lastUpdated (Number): 0
+    - json ejemplo :
+     ```json
+            {
+          "id": "room-17150000",
+          "name": "Proyecto X",
+          "type": "PRIVATE",       // 'GLOBAL' o 'PRIVATE'
+          "createdBy": "user-abc",
+          "participants": [        // IDs de usuarios permitidos
+            "user-abc",
+            "user-xyz"
+          ]
+        }
+  ```
 
