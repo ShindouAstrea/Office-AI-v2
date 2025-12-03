@@ -59,7 +59,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
       const file = e.target.files?.[0];
       if (!file) return;
 
-      // Limit size to 800KB for Firestore Document Safety
+      // Limit size to 800KB for safe storage in Firestore Document (1MB Limit)
       if (file.size > 800 * 1024) {
           alert(t('chat.upload_error'));
           if (fileInputRef.current) fileInputRef.current.value = '';
