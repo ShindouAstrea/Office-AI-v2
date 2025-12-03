@@ -5,7 +5,7 @@ import { Furniture, ChatMessage, ChatRoom } from '../types';
 // Declare process to avoid TS2580 if @types/node is not loaded
 declare const process: { env: Record<string, string | undefined> };
 
-// Safe configuration: allows the app to load even if env vars are missing (starts in offline mode)
+// Safe configuration
 const firebaseConfig = {
   apiKey: process.env.FIREBASE_API_KEY || "demo-key",
   authDomain: process.env.FIREBASE_AUTH_DOMAIN || "demo.firebaseapp.com",
@@ -18,7 +18,6 @@ const firebaseConfig = {
 let db: any = null;
 
 try {
-  // Only initialize if we seem to have a valid config (check for API KEY)
   if (process.env.FIREBASE_API_KEY) {
       const app = initializeApp(firebaseConfig);
       db = getFirestore(app);
@@ -40,6 +39,11 @@ const DOCS = {
   CHAT_ROOMS: 'chat_rooms_v1'
 };
 
+// --- HELPER: Remove undefined fields (Firestore rejects them) ---
+const cleanObject = (obj: any) => {
+    return JSON.parse(JSON.stringify(obj));
+};
+
 // --- API ---
 
 export const loadFurnitureMap = async (): Promise<Furniture[] | null> => {
@@ -51,7 +55,6 @@ export const loadFurnitureMap = async (): Promise<Furniture[] | null> => {
 
     if (docSnap.exists()) {
       const data = docSnap.data();
-      // Validate furniture is an array
       return Array.isArray(data.furniture) ? data.furniture : [];
     } else {
       return null; 
@@ -67,28 +70,28 @@ export const saveFurnitureMap = async (furniture: Furniture[]) => {
   
   try {
     const docRef = doc(db, COLLECTIONS.OFFICE, DOCS.MAIN_MAP);
-    await setDoc(docRef, { furniture, lastUpdated: Date.now() }, { merge: true });
+    // Clean the array to ensure no undefined values sneak in
+    const cleanFurniture = cleanObject(furniture);
+    await setDoc(docRef, { furniture: cleanFurniture, lastUpdated: Date.now() }, { merge: true });
   } catch (error) {
     console.error("Error saving map:", error);
     throw error;
   }
 };
 
-export const loadChatHistory = async (): Promise<ChatMessage[]> => {
-    if (!db) return [];
+export const loadChatHistory = async (): Promise<ChatMessage[] | null> => {
+    if (!db) return null; // Return null (not empty array) to prevent clearing state on connection fail
     try {
         const docRef = doc(db, COLLECTIONS.OFFICE, DOCS.CHAT_LOG);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
             const data = docSnap.data();
-            // SAFETY CHECK: Ensure messages is actually an array. 
-            // If field is missing (deleted manually), return [] to allow app to sync.
             return Array.isArray(data.messages) ? data.messages : [];
         }
-        return [];
+        return []; // Doc exists but is empty or new
     } catch (error) {
         console.error("Error loading chat:", error);
-        return [];
+        return null; // Prevent overwrite
     }
 }
 
@@ -96,20 +99,23 @@ export const saveChatMessage = async (message: ChatMessage) => {
     if (!db) throw new Error("Database not connected");
     try {
         const docRef = doc(db, COLLECTIONS.OFFICE, DOCS.CHAT_LOG);
-        // arrayUnion creates the array if it doesn't exist
+        // IMPORTANT: Clean object removes 'undefined' fields like optional attachment
+        const cleanMessage = cleanObject(message);
+        
         await setDoc(docRef, { 
-            messages: arrayUnion(message),
+            messages: arrayUnion(cleanMessage),
             lastUpdated: Date.now()
         }, { merge: true });
     } catch (error) {
+        console.error("Error saving message:", error);
         throw error;
     }
 }
 
 // --- ROOMS API ---
 
-export const loadChatRooms = async (): Promise<ChatRoom[]> => {
-    if (!db) return [];
+export const loadChatRooms = async (): Promise<ChatRoom[] | null> => {
+    if (!db) return null;
     try {
         const docRef = doc(db, COLLECTIONS.OFFICE, DOCS.CHAT_ROOMS);
         const docSnap = await getDoc(docRef);
@@ -120,7 +126,7 @@ export const loadChatRooms = async (): Promise<ChatRoom[]> => {
         return [];
     } catch (error) {
         console.error("Error loading rooms:", error);
-        return [];
+        return null;
     }
 };
 
@@ -128,8 +134,9 @@ export const createChatRoom = async (room: ChatRoom) => {
     if (!db) throw new Error("Database not connected");
     try {
         const docRef = doc(db, COLLECTIONS.OFFICE, DOCS.CHAT_ROOMS);
+        const cleanRoom = cleanObject(room);
         await setDoc(docRef, { 
-            rooms: arrayUnion(room),
+            rooms: arrayUnion(cleanRoom),
             lastUpdated: Date.now()
         }, { merge: true });
     } catch (error) {

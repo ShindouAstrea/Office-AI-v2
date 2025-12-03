@@ -277,7 +277,10 @@ const App: React.FC = () => {
               }
           }
           
-          if (remoteChat) setMessages(remoteChat);
+          // Only update if we got a valid response (not null from error)
+          if (remoteChat) {
+              setMessages(remoteChat);
+          }
           
           if (remoteRooms && remoteRooms.length > 0) {
               const uniqueRooms = [GLOBAL_ROOM, ...remoteRooms.filter(r => r.id !== 'global')];
@@ -491,16 +494,22 @@ const App: React.FC = () => {
 
   const handleSendMessage = (text: string, roomId: string, attachment?: Attachment) => {
       if (!currentUser) return;
+      
+      // Construct message manually to ensure no undefined properties
       const msg: ChatMessage = {
           id: Date.now().toString(),
           roomId: roomId,
           senderId: currentUser.id,
           senderName: currentUser.name,
           text,
-          attachment,
           timestamp: Date.now(),
           isPrivate: roomId !== 'global'
       };
+      
+      if (attachment) {
+          msg.attachment = attachment;
+      }
+      
       persistChatMessage(msg);
   };
 
