@@ -7,16 +7,18 @@ interface ControlBarProps {
   buildMode: boolean;
   chatVisible: boolean;
   usersMenuVisible: boolean;
+  settingsVisible: boolean; // Added prop
   onToggleMic: () => void;
   onToggleScreen: () => void;
   onToggleBuild: () => void;
   onToggleChat: () => void;
   onToggleUsers: () => void;
+  onToggleSettings: () => void; // Added prop
 }
 
 const ControlBar: React.FC<ControlBarProps> = ({
-  micOn, sharingScreen, buildMode, chatVisible, usersMenuVisible,
-  onToggleMic, onToggleScreen, onToggleBuild, onToggleChat, onToggleUsers
+  micOn, sharingScreen, buildMode, chatVisible, usersMenuVisible, settingsVisible,
+  onToggleMic, onToggleScreen, onToggleBuild, onToggleChat, onToggleUsers, onToggleSettings
 }) => {
   const btnClass = "p-3 rounded-full backdrop-blur-md transition-all duration-200 flex items-center justify-center shadow-lg active:scale-95";
   const activeClass = "bg-indigo-600 text-white hover:bg-indigo-700";
@@ -60,7 +62,11 @@ const ControlBar: React.FC<ControlBarProps> = ({
         <LayoutGrid size={20} />
       </button>
 
-      <button className={`${btnClass} ${neutralClass}`}>
+      <button 
+        onClick={onToggleSettings}
+        className={`${btnClass} ${settingsVisible ? activeClass : neutralClass}`}
+        title="Settings"
+      >
         <Settings size={20} />
       </button>
     </div>

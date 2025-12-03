@@ -27,7 +27,8 @@ export const translations = {
     "chat.no_peers": "No other users online",
     "chat.btn_create": "Create Room",
     "chat.empty": "Start the conversation in",
-    "chat.upload_error": "File too large (Max 800KB for text-db limit)",
+    "chat.upload_error": "File too large (Max 800KB for local DB)",
+    "chat.uploading": "Processing...",
     "chat.file_type_error": "File type not supported",
     "room.global": "General",
 
@@ -37,7 +38,7 @@ export const translations = {
     "loc.office1": "Private Office 1",
     "loc.office2": "Dev Office",
     "loc.open": "Open Space",
-    "loc.gameroom": "Arcade Room", // New
+    "loc.gameroom": "Arcade Room",
     "notify.enter": "Entered",
 
     // Participants
@@ -110,7 +111,15 @@ export const translations = {
     "game.winner": "Winner",
     "game.draw": "Draw!",
     "game.reset": "Reset Game",
-    "game.close": "Close Game"
+    "game.close": "Close Game",
+
+    // Settings
+    "settings.title": "Settings",
+    "settings.language": "Language",
+    "settings.notifications": "Notifications",
+    "settings.minimap": "Show Minimap",
+    "settings.on": "ON",
+    "settings.off": "OFF"
   },
   es: {
     // General
@@ -138,7 +147,8 @@ export const translations = {
     "chat.no_peers": "No hay otros usuarios en línea",
     "chat.btn_create": "Crear Sala",
     "chat.empty": "Comienza la conversación en",
-    "chat.upload_error": "Archivo muy grande (Máx 800KB por límite BD texto)",
+    "chat.upload_error": "Archivo muy grande (Máx 800KB por límite BD local)",
+    "chat.uploading": "Procesando...",
     "chat.file_type_error": "Tipo de archivo no soportado",
     "room.global": "General",
 
@@ -148,7 +158,7 @@ export const translations = {
     "loc.office1": "Oficina Privada 1",
     "loc.office2": "Oficina Desarrollo",
     "loc.open": "Espacio Común",
-    "loc.gameroom": "Sala de Juegos", // New
+    "loc.gameroom": "Sala de Juegos",
     "notify.enter": "Has ingresado a",
 
     // Participants
@@ -221,6 +231,14 @@ export const translations = {
     "game.winner": "Ganador",
     "game.draw": "Empate!",
     "game.reset": "Reiniciar",
-    "game.close": "Salir"
+    "game.close": "Salir",
+
+    // Settings
+    "settings.title": "Ajustes",
+    "settings.language": "Idioma",
+    "settings.notifications": "Notificaciones",
+    "settings.minimap": "Mostrar Minimapa",
+    "settings.on": "ON",
+    "settings.off": "OFF"
   }
 };

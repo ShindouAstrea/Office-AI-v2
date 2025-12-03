@@ -14,6 +14,7 @@ import ParticipantsMenu from './components/ParticipantsMenu';
 import BuildMenu from './components/BuildMenu';
 import Minimap from './components/Minimap';
 import ScreenShareViewer from './components/ScreenShareViewer';
+import SettingsMenu from './components/SettingsMenu';
 import { loadFurnitureMap, saveFurnitureMap, loadChatHistory, saveChatMessage, loadChatRooms, createChatRoom } from './services/firebase';
 import { useLanguage } from './contexts/LanguageContext';
 import { X, Circle, RotateCcw, XOctagon } from 'lucide-react';
@@ -156,11 +157,16 @@ const App: React.FC = () => {
   // Notification System
   const [notification, setNotification] = useState<string | null>(null);
   const [notificationType, setNotificationType] = useState<'info' | 'error'>('info');
+  
+  // Settings State
+  const [settingsVisible, setSettingsVisible] = useState(false);
+  const [showMinimap, setShowMinimap] = useState(true);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
   // UI State
   const [chatVisible, setChatVisible] = useState(true);
   const [usersMenuVisible, setUsersMenuVisible] = useState(false);
-  const [isGameOpen, setIsGameOpen] = useState(false); // Game state
+  const [isGameOpen, setIsGameOpen] = useState(false); 
   
   // Media State
   const [micOn, setMicOn] = useState(false);
@@ -178,12 +184,61 @@ const App: React.FC = () => {
 
   // --- HELPER: NOTIFICATIONS ---
   const showNotification = (msg: string, type: 'info' | 'error' = 'info') => {
+      // Check settings before showing info notifications
+      if (type === 'info' && !notificationsEnabled) return;
+
       if (notificationTimeoutRef.current) window.clearTimeout(notificationTimeoutRef.current);
       setNotification(msg);
       setNotificationType(type);
       notificationTimeoutRef.current = window.setTimeout(() => {
           setNotification(null);
       }, 4000);
+  };
+
+  // --- UI TOGGLE HANDLERS (Mutually Exclusive) ---
+  
+  const handleToggleChat = () => {
+      const newState = !chatVisible;
+      if (newState) {
+          setUsersMenuVisible(false);
+          setBuildMode(false);
+          setSettingsVisible(false);
+          setIsGameOpen(false);
+      }
+      setChatVisible(newState);
+  };
+
+  const handleToggleUsers = () => {
+      const newState = !usersMenuVisible;
+      if (newState) {
+          setChatVisible(false);
+          setBuildMode(false);
+          setSettingsVisible(false);
+          setIsGameOpen(false);
+      }
+      setUsersMenuVisible(newState);
+  };
+
+  const handleToggleBuild = () => {
+      const newState = !buildMode;
+      if (newState) {
+          setChatVisible(false);
+          setUsersMenuVisible(false);
+          setSettingsVisible(false);
+          setIsGameOpen(false);
+      }
+      setBuildMode(newState);
+  };
+
+  const handleToggleSettings = () => {
+      const newState = !settingsVisible;
+      if (newState) {
+          setChatVisible(false);
+          setUsersMenuVisible(false);
+          setBuildMode(false);
+          setIsGameOpen(false);
+      }
+      setSettingsVisible(newState);
   };
 
   // --- MEDIA HANDLERS ---
@@ -277,10 +332,7 @@ const App: React.FC = () => {
               }
           }
           
-          // Only update if we got a valid response (not null from error)
-          if (remoteChat) {
-              setMessages(remoteChat);
-          }
+          if (remoteChat) setMessages(remoteChat);
           
           if (remoteRooms && remoteRooms.length > 0) {
               const uniqueRooms = [GLOBAL_ROOM, ...remoteRooms.filter(r => r.id !== 'global')];
@@ -407,6 +459,11 @@ const App: React.FC = () => {
       const targetItem = furniture.find(f => f.id === targetId);
       if (targetItem && targetItem.type === FurnitureType.ARCADE) {
           setIsGameOpen(true);
+          // Close other panels when opening game
+          setChatVisible(false);
+          setBuildMode(false);
+          setSettingsVisible(false);
+          setUsersMenuVisible(false);
       }
   };
 
@@ -502,13 +559,10 @@ const App: React.FC = () => {
           senderId: currentUser.id,
           senderName: currentUser.name,
           text,
+          attachment,
           timestamp: Date.now(),
           isPrivate: roomId !== 'global'
       };
-      
-      if (attachment) {
-          msg.attachment = attachment;
-      }
       
       persistChatMessage(msg);
   };
@@ -574,6 +628,7 @@ const App: React.FC = () => {
       };
 
       if (selectedFurnitureType === FurnitureType.DELETE) {
+          // FIX: Filter keeps items that are NOT at the click position
           const newFurniture = furniture.filter(f => 
               !(Math.abs(f.position.x - gridPos.x) < 0.5 && Math.abs(f.position.y - gridPos.y) < 0.5)
           );
@@ -677,7 +732,9 @@ const App: React.FC = () => {
             onMaximizeScreen={setMaximizedScreenId}
         />
         
-        <Minimap furniture={furniture} peers={peers} currentUser={currentUser} />
+        {showMinimap && (
+            <Minimap furniture={furniture} peers={peers} currentUser={currentUser} />
+        )}
         
         {buildMode && (
           <BuildMenu 
@@ -688,6 +745,17 @@ const App: React.FC = () => {
             onRotate={handleManualRotate}
             onReset={handleResetMap}
           />
+        )}
+
+        {/* Settings Menu */}
+        {settingsVisible && (
+            <SettingsMenu 
+                onClose={() => setSettingsVisible(false)}
+                notificationsEnabled={notificationsEnabled}
+                setNotificationsEnabled={setNotificationsEnabled}
+                showMinimap={showMinimap}
+                setShowMinimap={setShowMinimap}
+            />
         )}
 
         {/* Minigame Overlay */}
@@ -707,11 +775,15 @@ const App: React.FC = () => {
             micOn={micOn} sharingScreen={sharingScreen} buildMode={buildMode}
             chatVisible={chatVisible}
             usersMenuVisible={usersMenuVisible}
+            settingsVisible={settingsVisible} 
             onToggleMic={handleToggleMic}
             onToggleScreen={handleToggleScreen}
-            onToggleBuild={() => setBuildMode(!buildMode)}
-            onToggleChat={() => setChatVisible(!chatVisible)}
-            onToggleUsers={() => setUsersMenuVisible(!usersMenuVisible)}
+            
+            // Updated Toggle Handlers
+            onToggleBuild={handleToggleBuild}
+            onToggleChat={handleToggleChat}
+            onToggleUsers={handleToggleUsers}
+            onToggleSettings={handleToggleSettings}
         />
 
         <div className={chatVisible ? '' : 'hidden'}>

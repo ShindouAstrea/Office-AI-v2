@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Users, Plus, Hash, Lock, X, Check, Paperclip, File, Image } from 'lucide-react';
+import { Send, Users, Plus, Hash, Lock, X, Check, Paperclip, File, Image, Loader2 } from 'lucide-react';
 import { ChatMessage, ChatRoom, Player, Attachment } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -32,6 +32,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   
   // Attachments State
   const [attachment, setAttachment] = useState<Attachment | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -46,7 +47,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputText.trim() && !attachment) return;
+    if ((!inputText.trim() && !attachment) || isUploading) return;
     
     onSendMessage(inputText, activeRoomId, attachment || undefined);
     
@@ -58,24 +59,27 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
       const file = e.target.files?.[0];
       if (!file) return;
 
-      // Limit size to ~800KB because we are storing in Firestore Document (Limit 1MB)
-      // If using Firebase Storage, this could be 5MB.
+      // Limit size to 800KB for Firestore Document Safety
       if (file.size > 800 * 1024) {
           alert(t('chat.upload_error'));
           if (fileInputRef.current) fileInputRef.current.value = '';
           return;
       }
 
+      setIsUploading(true);
+
       const reader = new FileReader();
       reader.onloadend = () => {
           const base64 = reader.result as string;
           const type = file.type.startsWith('image/') ? 'image' : 'file';
+          
           setAttachment({
               type,
               url: base64,
               name: file.name,
               size: file.size
           });
+          setIsUploading(false);
       };
       reader.readAsDataURL(file);
   };
@@ -261,13 +265,23 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
                 {/* Input Area */}
                 <div className="p-3 border-t border-gray-700 bg-gray-800/30 flex flex-col gap-2">
                     {/* Attachment Preview */}
-                    {attachment && (
+                    {(attachment || isUploading) && (
                         <div className="flex items-center gap-2 bg-gray-800 p-2 rounded-lg border border-gray-600">
-                            {attachment.type === 'image' ? <Image size={16} className="text-purple-400" /> : <File size={16} className="text-blue-400"/>}
-                            <span className="text-xs text-gray-300 truncate max-w-[150px]">{attachment.name}</span>
-                            <button onClick={removeAttachment} className="ml-auto text-gray-500 hover:text-red-400">
-                                <X size={14} />
-                            </button>
+                            {isUploading ? (
+                                <Loader2 size={16} className="text-indigo-400 animate-spin" />
+                            ) : (
+                                attachment?.type === 'image' ? <Image size={16} className="text-purple-400" /> : <File size={16} className="text-blue-400"/>
+                            )}
+                            
+                            <span className="text-xs text-gray-300 truncate max-w-[150px]">
+                                {isUploading ? t('chat.uploading') : attachment?.name}
+                            </span>
+                            
+                            {!isUploading && (
+                                <button onClick={removeAttachment} className="ml-auto text-gray-500 hover:text-red-400">
+                                    <X size={14} />
+                                </button>
+                            )}
                         </div>
                     )}
 
@@ -277,12 +291,13 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
                             ref={fileInputRef}
                             className="hidden" 
                             onChange={handleFileChange}
-                            accept="image/*,.pdf,.doc,.docx,.txt" // Allow images (including GIFs) and docs
+                            accept="image/*,.pdf,.doc,.docx,.txt" 
                         />
                         <button 
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
-                            className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+                            disabled={isUploading}
+                            className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors disabled:opacity-50"
                             title="Attach File/Image"
                         >
                             <Paperclip size={18} />
@@ -297,7 +312,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
                         />
                         <button
                         type="submit"
-                        disabled={!inputText.trim() && !attachment}
+                        disabled={(!inputText.trim() && !attachment) || isUploading}
                         className="p-2 rounded-lg text-white transition-colors bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                         <Send size={18} />
