@@ -29,7 +29,7 @@ import {
 import { useLanguage } from './contexts/LanguageContext';
 import { X, Circle, RotateCcw, XOctagon } from 'lucide-react';
 
-// --- INLINED TIC-TAC-TOE COMPONENT ---
+// ... (TicTacToe component remains unchanged, assumed inlined)
 interface TicTacToeProps {
   onClose: () => void;
 }
@@ -82,8 +82,6 @@ const TicTacToe: React.FC<TicTacToeProps> = ({ onClose }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fadeIn">
       <div className="bg-gray-900 border-4 border-indigo-500 rounded-2xl p-6 shadow-2xl max-w-sm w-full relative transform transition-all scale-100">
-        
-        {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-indigo-500 uppercase tracking-widest shadow-neon">
             {t('game.tictactoe')}
@@ -92,13 +90,9 @@ const TicTacToe: React.FC<TicTacToeProps> = ({ onClose }) => {
             <XOctagon size={24} />
           </button>
         </div>
-
-        {/* Status */}
         <div className="text-center text-white mb-6 font-mono text-lg bg-gray-800 py-2 rounded-lg border border-gray-700">
           {status}
         </div>
-
-        {/* Board */}
         <div className="grid grid-cols-3 gap-2 mb-6">
           {board.map((square, i) => (
             <button
@@ -115,22 +109,16 @@ const TicTacToe: React.FC<TicTacToeProps> = ({ onClose }) => {
             </button>
           ))}
         </div>
-
-        {/* Controls */}
         <div className="flex justify-center">
-          <button
-            onClick={resetGame}
-            className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg active:scale-95"
-          >
+          <button onClick={resetGame} className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg active:scale-95">
             <RotateCcw size={18} /> {t('game.reset')}
           </button>
         </div>
-
       </div>
     </div>
   );
 };
-// --- END OF INLINED COMPONENT ---
+
 
 // Initial Global Room
 const GLOBAL_ROOM: ChatRoom = {
@@ -191,12 +179,11 @@ const App: React.FC = () => {
   const notificationTimeoutRef = useRef<number | null>(null);
   const localMicStreamRef = useRef<MediaStream | null>(null);
   const localScreenStreamRef = useRef<MediaStream | null>(null);
-  // For throttling updates
   const lastUpdateRef = useRef<number>(0);
+  const peersRef = useRef<Player[]>([]); // Keep track to avoid closure staleness if needed
 
   // --- HELPER: NOTIFICATIONS ---
   const showNotification = (msg: string, type: 'info' | 'error' = 'info') => {
-      // Check settings before showing info notifications
       if (type === 'info' && !notificationsEnabled) return;
 
       if (notificationTimeoutRef.current) window.clearTimeout(notificationTimeoutRef.current);
@@ -207,54 +194,29 @@ const App: React.FC = () => {
       }, 4000);
   };
 
-  // --- UI TOGGLE HANDLERS (Mutually Exclusive) ---
-  
+  // --- UI TOGGLE HANDLERS ---
   const handleToggleChat = () => {
       const newState = !chatVisible;
-      if (newState) {
-          setUsersMenuVisible(false);
-          setBuildMode(false);
-          setSettingsVisible(false);
-          setIsGameOpen(false);
-      }
+      if (newState) { setUsersMenuVisible(false); setBuildMode(false); setSettingsVisible(false); setIsGameOpen(false); }
       setChatVisible(newState);
   };
-
   const handleToggleUsers = () => {
       const newState = !usersMenuVisible;
-      if (newState) {
-          setChatVisible(false);
-          setBuildMode(false);
-          setSettingsVisible(false);
-          setIsGameOpen(false);
-      }
+      if (newState) { setChatVisible(false); setBuildMode(false); setSettingsVisible(false); setIsGameOpen(false); }
       setUsersMenuVisible(newState);
   };
-
   const handleToggleBuild = () => {
       const newState = !buildMode;
-      if (newState) {
-          setChatVisible(false);
-          setUsersMenuVisible(false);
-          setSettingsVisible(false);
-          setIsGameOpen(false);
-      }
+      if (newState) { setChatVisible(false); setUsersMenuVisible(false); setSettingsVisible(false); setIsGameOpen(false); }
       setBuildMode(newState);
   };
-
   const handleToggleSettings = () => {
       const newState = !settingsVisible;
-      if (newState) {
-          setChatVisible(false);
-          setUsersMenuVisible(false);
-          setBuildMode(false);
-          setIsGameOpen(false);
-      }
+      if (newState) { setChatVisible(false); setUsersMenuVisible(false); setBuildMode(false); setIsGameOpen(false); }
       setSettingsVisible(newState);
   };
 
   // --- MEDIA HANDLERS ---
-  
   const handleToggleMic = async () => {
     if (micOn) {
         if (localMicStreamRef.current) {
@@ -269,10 +231,8 @@ const App: React.FC = () => {
             setMicOn(true);
         } catch (error: any) {
             if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-                 console.log("Mic permission denied by user.");
                  showNotification("Acceso al micrófono denegado", "error");
             } else {
-                 console.error("Mic access failed:", error);
                  showNotification("Error al acceder al micrófono", "error");
             }
         }
@@ -281,9 +241,7 @@ const App: React.FC = () => {
 
   const handleToggleScreen = async () => {
     if (!currentUser) return;
-
     if (sharingScreen) {
-        // STOP SHARING
         if (localScreenStreamRef.current) {
             localScreenStreamRef.current.getTracks().forEach(track => track.stop());
             localScreenStreamRef.current = null;
@@ -291,21 +249,12 @@ const App: React.FC = () => {
         setSharingScreen(false);
         setScreenShares(prev => prev.filter(s => s.playerId !== currentUser.id));
         if (maximizedScreenId === currentUser.id) setMaximizedScreenId(null);
-
     } else {
-        // START SHARING
         try {
             const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
             localScreenStreamRef.current = stream;
             setSharingScreen(true);
-            
-            // Add to active shares list
-            setScreenShares(prev => [
-                ...prev, 
-                { playerId: currentUser.id, stream, playerName: currentUser.name }
-            ]);
-
-            // Handle browser-level stop button
+            setScreenShares(prev => [...prev, { playerId: currentUser.id, stream, playerName: currentUser.name }]);
             stream.getVideoTracks()[0].onended = () => {
                 setSharingScreen(false);
                 localScreenStreamRef.current = null;
@@ -315,10 +264,8 @@ const App: React.FC = () => {
         } catch (error: any) {
             setSharingScreen(false);
             if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-                console.log("Screen share cancelled by user.");
                 showNotification("Compartir pantalla cancelado", "info");
             } else {
-                console.error("Screen share failed:", error);
                 showNotification("Error al compartir pantalla", "error");
             }
         }
@@ -326,219 +273,158 @@ const App: React.FC = () => {
   };
 
   // --- DATA SYNC ---
-  
   const fetchData = async () => {
       try {
-          // Removed automatic peers update here, now handled by listener
           const [remoteFurniture, remoteChat, remoteRooms] = await Promise.all([
               loadFurnitureMap(),
               loadChatHistory(),
               loadChatRooms()
           ]);
-
           if (remoteFurniture && Array.isArray(remoteFurniture)) {
-              const validFurniture = remoteFurniture.filter(f => 
-                  f && f.position && typeof f.position.x === 'number' && typeof f.position.y === 'number'
-              );
-              if (validFurniture.length > 0 || remoteFurniture.length === 0) {
-                  setFurniture(validFurniture);
-              }
+              const validFurniture = remoteFurniture.filter(f => f && f.position && typeof f.position.x === 'number' && typeof f.position.y === 'number');
+              if (validFurniture.length > 0 || remoteFurniture.length === 0) setFurniture(validFurniture);
           }
-          
           if (remoteChat) setMessages(remoteChat);
-          
           if (remoteRooms && remoteRooms.length > 0) {
               const uniqueRooms = [GLOBAL_ROOM, ...remoteRooms.filter(r => r.id !== 'global')];
               setRooms(uniqueRooms);
           }
-      } catch (error) {
-          console.error("Data fetch warning:", error);
-      }
+      } catch (error) { console.error("Data fetch warning:", error); }
   };
 
-  // Initial Load
   useEffect(() => {
-    const init = async () => {
-        await fetchData();
-        setIsDataLoaded(true);
-    };
+    const init = async () => { await fetchData(); setIsDataLoaded(true); };
     init();
   }, []);
 
-  // Polling for Chat and Rooms (Furniture mostly static or updated via snapshot ideally, but polling okay for now)
   useEffect(() => {
       if (!isDataLoaded) return;
-      const interval = setInterval(() => {
-          fetchData(); 
-      }, 5000); 
+      const interval = setInterval(() => { fetchData(); }, 5000); 
       return () => clearInterval(interval);
   }, [isDataLoaded]);
 
-  // --- KEYBOARD SHORTCUTS FOR BUILD MODE ---
+  // --- REALTIME PEER SYNC ---
+  useEffect(() => {
+      if (!currentUser) return;
+      
+      // Subscribe to active users collection
+      const unsubscribe = subscribeToActiveUsers(currentUser.id, (activePeers) => {
+          // We receive the *target* state from Firebase.
+          // We need to merge it with current state to allow GameCanvas to interpolate.
+          setPeers(prevPeers => {
+              // Create a map for O(1) lookup
+              const prevMap = new Map(prevPeers.map(p => [p.id, p]));
+              
+              return activePeers.map(serverPeer => {
+                  const localPeer = prevMap.get(serverPeer.id);
+                  // If we have this peer locally, keep their CURRENT interpolated position
+                  // but update their TARGET position from server.
+                  if (localPeer) {
+                      return {
+                          ...serverPeer,
+                          position: localPeer.position, // Keep local interpolated pos
+                          targetPosition: serverPeer.position // Update target from server
+                      };
+                  }
+                  // New peer? Start them at their server position
+                  return {
+                      ...serverPeer,
+                      targetPosition: serverPeer.position
+                  };
+              });
+          });
+      });
+      
+      const cleanup = () => {
+          removeUserSession(currentUser.id);
+          unsubscribe();
+      };
+      window.addEventListener('beforeunload', cleanup);
+      return () => { cleanup(); window.removeEventListener('beforeunload', cleanup); }
+  }, [currentUser]);
+
+
+  // --- KEYBOARD SHORTCUTS ---
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Rotate object with 'R' if in build mode
       if (buildMode && e.key.toLowerCase() === 'r') {
         const target = e.target as HTMLElement;
         if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
-
         setSelectedRotation(prev => (prev + 90) % 360);
-
         if (selectedObjectId) {
             setFurniture(prev => {
-                const updated = prev.map(f => {
-                    if (f.id === selectedObjectId) {
-                        return { ...f, rotation: (f.rotation + 90) % 360 };
-                    }
-                    return f;
-                });
-                persistMapChange(updated);
-                return updated;
+                const updated = prev.map(f => (f.id === selectedObjectId ? { ...f, rotation: (f.rotation + 90) % 360 } : f));
+                persistMapChange(updated); return updated;
             });
         }
       }
-      // Delete selected object
       if (buildMode && (e.key === 'Delete' || e.key === 'Backspace') && selectedObjectId) {
           const target = e.target as HTMLElement;
           if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
-          
           const newFurn = furniture.filter(f => f.id !== selectedObjectId);
-          setFurniture(newFurn);
-          persistMapChange(newFurn);
-          setSelectedObjectId(null);
+          setFurniture(newFurn); persistMapChange(newFurn); setSelectedObjectId(null);
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [buildMode, selectedObjectId, furniture]);
 
-
-  // --- PERSISTENCE HANDLERS ---
-  
+  // --- PERSISTENCE & LOGIC ---
   const persistMapChange = async (newFurniture: Furniture[]) => {
-      try {
-          await saveFurnitureMap(newFurniture);
-      } catch (error) {
-          showNotification(t('conn.temp'), "error");
-      }
+      try { await saveFurnitureMap(newFurniture); } catch (error) { showNotification(t('conn.temp'), "error"); }
   };
-
   const persistChatMessage = async (msg: ChatMessage) => {
       setMessages(prev => [...prev, msg]);
-      try {
-          await saveChatMessage(msg);
-      } catch (error) {
-          showNotification(t('conn.msg_fail'), "error");
-      }
+      try { await saveChatMessage(msg); } catch (error) { showNotification(t('conn.msg_fail'), "error"); }
   };
-
-  // --- RESET MAP HANDLER ---
   const handleResetMap = () => {
       if (window.confirm(t('build.reset_confirm'))) {
-          setFurniture(INITIAL_FURNITURE);
-          persistMapChange(INITIAL_FURNITURE);
-          showNotification(t('build.reset_success'), "info");
+          setFurniture(INITIAL_FURNITURE); persistMapChange(INITIAL_FURNITURE); showNotification(t('build.reset_success'), "info");
       }
   };
-
   const handleCreateRoom = async (name: string, participants: string[]) => {
       if (!currentUser) return;
-      
-      const newRoom: ChatRoom = {
-          id: `room-${Date.now()}`,
-          name,
-          type: 'PRIVATE',
-          participants,
-          createdBy: currentUser.id
-      };
-
-      setRooms(prev => [...prev, newRoom]);
-      setActiveRoomId(newRoom.id);
-      
-      try {
-          await createChatRoom(newRoom);
-          showNotification(`${t('chat.new_room')}: ${name}`);
-      } catch (error) {
-          showNotification(t('conn.error'), "error");
-      }
+      const newRoom: ChatRoom = { id: `room-${Date.now()}`, name, type: 'PRIVATE', participants, createdBy: currentUser.id };
+      setRooms(prev => [...prev, newRoom]); setActiveRoomId(newRoom.id);
+      try { await createChatRoom(newRoom); showNotification(`${t('chat.new_room')}: ${name}`); } catch (error) { showNotification(t('conn.error'), "error"); }
   };
-
-  // --- INTERACTION HANDLER ---
   const handleInteract = (targetId: string | null) => {
       setInteractionTarget(targetId);
-      
-      // Check if target is an Arcade Machine
       const targetItem = furniture.find(f => f.id === targetId);
       if (targetItem && targetItem.type === FurnitureType.ARCADE) {
-          setIsGameOpen(true);
-          // Close other panels when opening game
-          setChatVisible(false);
-          setBuildMode(false);
-          setSettingsVisible(false);
-          setUsersMenuVisible(false);
+          setIsGameOpen(true); setChatVisible(false); setBuildMode(false); setSettingsVisible(false); setUsersMenuVisible(false);
       }
   };
 
-  // --- ZONE LOGIC & NOTIFICATIONS ---
+  // --- ZONE LOGIC ---
   useEffect(() => {
     if (!currentUser) return;
-
     const { x, y } = currentUser.position;
-    const gridX = Math.floor(x / TILE_SIZE);
-    const gridY = Math.floor(y / TILE_SIZE);
+    const gridX = Math.floor(x / TILE_SIZE); const gridY = Math.floor(y / TILE_SIZE);
+    let currentRoomId = 'OPEN_SPACE'; let roomName = t('loc.open');
+    const inZone = (z: {x:number, y:number, w:number, h:number}) => gridX >= z.x && gridX < z.x + z.w && gridY >= z.y && gridY < z.y + z.h;
+    if (inZone(KITCHEN_ZONE)) { currentRoomId = 'KITCHEN'; roomName = t('loc.kitchen'); } 
+    else if (inZone(BATHROOM_ZONE)) { currentRoomId = 'BATHROOM'; roomName = t('loc.bathroom'); }
+    else if (inZone(OFFICE_1_ZONE)) { currentRoomId = 'OFFICE_1'; roomName = t('loc.office1'); }
+    else if (inZone(OFFICE_2_ZONE)) { currentRoomId = 'OFFICE_2'; roomName = t('loc.office2'); }
 
-    let currentRoomId = 'OPEN_SPACE';
-    let roomName = t('loc.open');
-    
-    // Check Zones
-    const inZone = (z: {x:number, y:number, w:number, h:number}) => 
-        gridX >= z.x && gridX < z.x + z.w && gridY >= z.y && gridY < z.y + z.h;
-
-    if (inZone(KITCHEN_ZONE)) {
-        currentRoomId = 'KITCHEN';
-        roomName = t('loc.kitchen');
-    } else if (inZone(BATHROOM_ZONE)) {
-        currentRoomId = 'BATHROOM';
-        roomName = t('loc.bathroom');
-    } else if (inZone(OFFICE_1_ZONE)) {
-        currentRoomId = 'OFFICE_1';
-        roomName = t('loc.office1');
-    } else if (inZone(OFFICE_2_ZONE)) {
-        currentRoomId = 'OFFICE_2';
-        roomName = t('loc.office2');
-    }
-
-    // Auto-status logic
     let autoStatus = currentUser.status;
     if (currentUser.room !== currentRoomId) {
         if (currentRoomId === 'KITCHEN') autoStatus = 'Almorzando';
         else if (currentRoomId === 'BATHROOM') autoStatus = 'En el baño';
         else if (lastRoomRef.current === 'KITCHEN' || lastRoomRef.current === 'BATHROOM') autoStatus = 'En línea';
-        
-        // Auto-mute check
-        if ((currentRoomId === 'KITCHEN' || currentRoomId === 'BATHROOM') && micOn) {
-           handleToggleMic();
-        }
-        
+        if ((currentRoomId === 'KITCHEN' || currentRoomId === 'BATHROOM') && micOn) handleToggleMic();
         setCurrentUser(prev => prev ? { ...prev, room: currentRoomId, status: autoStatus } : null);
     }
-
     if (currentRoomId !== lastRoomRef.current) {
-        const text = currentRoomId === 'OPEN_SPACE' 
-            ? `${t('notify.enter')} ${roomName}` 
-            : `${t('notify.enter')}: ${roomName}`;
-            
-        showNotification(text, 'info');
+        showNotification(`${t('notify.enter')} ${roomName}`, 'info');
         lastRoomRef.current = currentRoomId;
     }
-
   }, [currentUser?.position, micOn, t]);
-
 
   const handleJoin = (playerData: Partial<Player>) => {
       const newPlayer = {
-        id: 'me-' + Date.now(), // Ensure unique ID for session
+        id: 'user-' + Math.random().toString(36).substr(2, 9), // Better ID generation
         name: playerData.name || 'User',
         color: playerData.color || AVATAR_COLORS[0],
         position: { x: 20 * TILE_SIZE + TILE_SIZE/2, y: 28 * TILE_SIZE + TILE_SIZE/2 }, 
@@ -552,200 +438,77 @@ const App: React.FC = () => {
       updateUserSession(newPlayer);
   };
 
-  // SUBSCRIBE TO PEERS
-  useEffect(() => {
-      if (!currentUser) return;
-      
-      const unsubscribe = subscribeToActiveUsers(currentUser.id, (activePeers) => {
-          setPeers(activePeers);
-      });
-      
-      // Cleanup on unmount (e.g. tab close)
-      const cleanup = () => {
-          removeUserSession(currentUser.id);
-          unsubscribe();
-      };
-
-      window.addEventListener('beforeunload', cleanup);
-      return () => {
-          cleanup();
-          window.removeEventListener('beforeunload', cleanup);
-      }
-  }, [currentUser]);
-
-
   const handleUpdateStatus = (newStatus: string) => {
     if (currentUser) {
       const updated = { ...currentUser, status: newStatus };
       setCurrentUser(updated);
-      updateUserSession(updated); // Sync status
+      updateUserSession(updated);
     }
   };
 
   const handleMove = (newPos: Position) => {
     if (currentUser) {
-        const updatedUser = { ...currentUser, position: newPos };
+        const updatedUser = { ...currentUser, position: newPos, targetPosition: newPos }; // Local move is instant for self
         setCurrentUser(updatedUser);
         
-        // Throttle Firebase updates (e.g., every 100ms)
         const now = Date.now();
-        if (now - lastUpdateRef.current > 100) {
+        if (now - lastUpdateRef.current > 200) { // Increased throttle to 200ms for better network
             updateUserSession(updatedUser);
             lastUpdateRef.current = now;
         }
     }
   };
-
-  const handleSendMessage = (text: string, roomId: string, attachment?: Attachment) => {
-      if (!currentUser) return;
-      
-      // Construct message manually to ensure no undefined properties
-      const msg: ChatMessage = {
-          id: Date.now().toString(),
-          roomId: roomId,
-          senderId: currentUser.id,
-          senderName: currentUser.name,
-          text,
-          attachment,
-          timestamp: Date.now(),
-          isPrivate: roomId !== 'global'
-      };
-      
-      persistChatMessage(msg);
-  };
-
-  const handleSelectFurniture = (type: FurnitureType, variant: number, rotation: number) => {
-      setSelectedFurnitureType(type);
-      setSelectedVariant(variant);
-      setSelectedRotation(rotation); 
-      
-      if (type !== FurnitureType.SELECT && type !== FurnitureType.DELETE) {
-          setSelectedObjectId(null);
-      }
-  };
-
-  const handleManualRotate = () => {
-      setSelectedRotation(prev => (prev + 90) % 360);
-      
-      if (selectedObjectId) {
-          setFurniture(prev => {
-              const updated = prev.map(f => {
-                  if (f.id === selectedObjectId) {
-                      return { ...f, rotation: (f.rotation + 90) % 360 };
-                  }
-                  return f;
-              });
-              persistMapChange(updated);
-              return updated;
-          });
-      }
-  };
-
-  // Helper to determine furniture layer
-  const getFurnitureLayer = (type: FurnitureType): 'FLOOR' | 'RUG' | 'BASE' | 'TOP' => {
+  
+  // ... (Remaining handlers: handleSendMessage, handleSelectFurniture, etc.)
+  const handleSendMessage = (text: string, roomId: string, attachment?: Attachment) => { if (!currentUser) return; const msg: ChatMessage = { id: Date.now().toString(), roomId, senderId: currentUser.id, senderName: currentUser.name, text, attachment, timestamp: Date.now(), isPrivate: roomId !== 'global' }; persistChatMessage(msg); };
+  const handleSelectFurniture = (type: FurnitureType, variant: number, rotation: number) => { setSelectedFurnitureType(type); setSelectedVariant(variant); setSelectedRotation(rotation); if (type !== FurnitureType.SELECT && type !== FurnitureType.DELETE) setSelectedObjectId(null); };
+  const handleManualRotate = () => { setSelectedRotation(prev => (prev + 90) % 360); if (selectedObjectId) { setFurniture(prev => { const updated = prev.map(f => (f.id === selectedObjectId ? { ...f, rotation: (f.rotation + 90) % 360 } : f)); persistMapChange(updated); return updated; }); } };
+  
+  const getFurnitureLayer = (type: FurnitureType) => {
       switch(type) {
-          case FurnitureType.FLOOR: return 'FLOOR';
-          case FurnitureType.RUG: return 'RUG';
-          case FurnitureType.SCREEN:
-          case FurnitureType.COFFEE_MAKER:
-          case FurnitureType.FOOD:
-          case FurnitureType.LAMP:
-          case FurnitureType.PLANT:
-          case FurnitureType.PRINTER:
-          case FurnitureType.SINK:
-              return 'TOP';
-          case FurnitureType.ARCADE: return 'BASE';
-          default: return 'BASE';
+          case FurnitureType.FLOOR: return 'FLOOR'; case FurnitureType.RUG: return 'RUG';
+          case FurnitureType.SCREEN: case FurnitureType.COFFEE_MAKER: case FurnitureType.FOOD: case FurnitureType.LAMP: case FurnitureType.PLANT: case FurnitureType.PRINTER: case FurnitureType.SINK: return 'TOP';
+          case FurnitureType.ARCADE: return 'BASE'; default: return 'BASE';
       }
   };
-
-  // Determine snap precision based on type
-  const getSnapPrecision = (type: FurnitureType): number => {
-      if (type === FurnitureType.WALL || type === FurnitureType.FLOOR) return 1; 
-      return 0.5; 
-  };
+  const getSnapPrecision = (type: FurnitureType) => (type === FurnitureType.WALL || type === FurnitureType.FLOOR) ? 1 : 0.5;
 
   const handlePlaceFurniture = (pixelPos: Position) => {
       if (!buildMode) return;
-      
-      // Convert pixel to grid coordinates
-      const gridPos = {
-          x: pixelPos.x / TILE_SIZE,
-          y: pixelPos.y / TILE_SIZE
-      };
+      const gridPos = { x: pixelPos.x / TILE_SIZE, y: pixelPos.y / TILE_SIZE };
 
       if (selectedFurnitureType === FurnitureType.DELETE) {
-          // FIX: Filter keeps items that are NOT at the click position
-          const newFurniture = furniture.filter(f => 
-              !(Math.abs(f.position.x - gridPos.x) < 0.5 && Math.abs(f.position.y - gridPos.y) < 0.5)
-          );
-          
-          if (newFurniture.length !== furniture.length) {
-              setFurniture(newFurniture);
-              persistMapChange(newFurniture);
-          }
+          const newFurniture = furniture.filter(f => !(Math.abs(f.position.x - gridPos.x) < 0.5 && Math.abs(f.position.y - gridPos.y) < 0.5));
+          if (newFurniture.length !== furniture.length) { setFurniture(newFurniture); persistMapChange(newFurniture); }
           return;
       }
-
       if (selectedFurnitureType === FurnitureType.SELECT) {
-          const clickedItem = furniture.find(f => 
-              Math.abs(f.position.x - gridPos.x) < 0.5 && Math.abs(f.position.y - gridPos.y) < 0.5
-          );
-
-          if (clickedItem) {
-              setSelectedObjectId(clickedItem.id);
-              setSelectedRotation(clickedItem.rotation);
-          } else if (selectedObjectId) {
+          const clickedItem = furniture.find(f => Math.abs(f.position.x - gridPos.x) < 0.5 && Math.abs(f.position.y - gridPos.y) < 0.5);
+          if (clickedItem) { setSelectedObjectId(clickedItem.id); setSelectedRotation(clickedItem.rotation); }
+          else if (selectedObjectId) {
               const selectedItem = furniture.find(f => f.id === selectedObjectId);
               if (selectedItem) {
                   const snap = getSnapPrecision(selectedItem.type);
-                  const snappedX = Math.round(gridPos.x / snap) * snap;
-                  const snappedY = Math.round(gridPos.y / snap) * snap;
-
-                  const newFurnList = furniture.map(f => {
-                      if (f.id === selectedObjectId) {
-                          return { ...f, position: { x: snappedX, y: snappedY } };
-                      }
-                      return f;
-                  });
-                  setFurniture(newFurnList);
-                  persistMapChange(newFurnList);
-              } else {
-                  setSelectedObjectId(null); 
-              }
-          } else {
-              setSelectedObjectId(null);
-          }
+                  const snappedX = Math.round(gridPos.x / snap) * snap; const snappedY = Math.round(gridPos.y / snap) * snap;
+                  const newFurnList = furniture.map(f => (f.id === selectedObjectId ? { ...f, position: { x: snappedX, y: snappedY } } : f));
+                  setFurniture(newFurnList); persistMapChange(newFurnList);
+              } else setSelectedObjectId(null);
+          } else setSelectedObjectId(null);
           return;
       }
-
       const snap = getSnapPrecision(selectedFurnitureType);
-      const snappedX = Math.round(gridPos.x / snap) * snap;
-      const snappedY = Math.round(gridPos.y / snap) * snap;
-      
+      const snappedX = Math.round(gridPos.x / snap) * snap; const snappedY = Math.round(gridPos.y / snap) * snap;
       const targetLayer = getFurnitureLayer(selectedFurnitureType);
-      
       const filtered = furniture.filter(f => {
           if (Math.abs(f.position.x - snappedX) >= 0.5 || Math.abs(f.position.y - snappedY) >= 0.5) return true;
-          
           const existingLayer = getFurnitureLayer(f.type);
           if (existingLayer === targetLayer) return false;
           return true; 
       });
-
-      const newFurn: Furniture = {
-          id: `f-${Date.now()}`,
-          type: selectedFurnitureType, 
-          position: { x: snappedX, y: snappedY },
-          rotation: selectedRotation,
-          variant: selectedVariant
-      };
-      
-      const updatedList = [...filtered, newFurn];
-      setFurniture(updatedList);
-      persistMapChange(updatedList);
+      const newFurn: Furniture = { id: `f-${Date.now()}`, type: selectedFurnitureType, position: { x: snappedX, y: snappedY }, rotation: selectedRotation, variant: selectedVariant };
+      const updatedList = [...filtered, newFurn]; setFurniture(updatedList); persistMapChange(updatedList);
   };
-  
+
   if (!currentUser) return <AvatarCreator onJoin={handleJoin} />;
   if (!isDataLoaded) return <div className="h-screen bg-gray-900 text-white flex items-center justify-center">{t('loading')}</div>;
 
@@ -762,16 +525,14 @@ const App: React.FC = () => {
             onInteract={handleInteract}
             buildMode={buildMode}
             onPlaceFurniture={handlePlaceFurniture}
-            
             selectedFurnitureType={selectedFurnitureType}
             selectedVariant={selectedVariant}
             selectedRotation={selectedRotation}
             selectedObjectId={selectedObjectId}
         />
-
+        
         <ZoneNotification message={notification} type={notificationType} />
         
-        {/* Pass screenShares to VideoOverlay for thumbnails */}
         <VideoOverlay 
             peers={peers} 
             currentUserPos={currentUser.position} 
@@ -779,9 +540,7 @@ const App: React.FC = () => {
             onMaximizeScreen={setMaximizedScreenId}
         />
         
-        {showMinimap && (
-            <Minimap furniture={furniture} peers={peers} currentUser={currentUser} />
-        )}
+        {showMinimap && <Minimap furniture={furniture} peers={peers} currentUser={currentUser} />}
         
         {buildMode && (
           <BuildMenu 
@@ -794,7 +553,6 @@ const App: React.FC = () => {
           />
         )}
 
-        {/* Settings Menu */}
         {settingsVisible && (
             <SettingsMenu 
                 onClose={() => setSettingsVisible(false)}
@@ -805,10 +563,7 @@ const App: React.FC = () => {
             />
         )}
 
-        {/* Minigame Overlay */}
-        {isGameOpen && (
-            <TicTacToe onClose={() => setIsGameOpen(false)} />
-        )}
+        {isGameOpen && <TicTacToe onClose={() => setIsGameOpen(false)} />}
 
         {maximizedStream && (
             <ScreenShareViewer 
@@ -825,8 +580,6 @@ const App: React.FC = () => {
             settingsVisible={settingsVisible} 
             onToggleMic={handleToggleMic}
             onToggleScreen={handleToggleScreen}
-            
-            // Updated Toggle Handlers
             onToggleBuild={handleToggleBuild}
             onToggleChat={handleToggleChat}
             onToggleUsers={handleToggleUsers}
