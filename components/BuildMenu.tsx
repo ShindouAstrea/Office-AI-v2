@@ -12,7 +12,7 @@ interface BuildMenuProps {
   selectedRotation: number;
   onSelect: (type: FurnitureType, variant: number, rotation: number) => void;
   onRotate: () => void;
-  onReset: () => void; // New prop for resetting map
+  onReset: () => void;
 }
 
 const BuildMenu: React.FC<BuildMenuProps> = ({ selectedType, selectedVariant, selectedRotation, onSelect, onRotate, onReset }) => {
@@ -41,6 +41,10 @@ const BuildMenu: React.FC<BuildMenuProps> = ({ selectedType, selectedVariant, se
             { type: FurnitureType.DESK, variant: 1, rotation: 0, label: t('furn.desk_white') },
             { type: FurnitureType.CHAIR, variant: 0, rotation: 0, label: t('furn.chair_office') },
             { type: FurnitureType.CHAIR, variant: 1, rotation: 0, label: t('furn.chair_exec') },
+            { type: FurnitureType.CHAIR, variant: 2, rotation: 0, label: t('furn.chair_meet') },
+            { type: FurnitureType.CABINET, variant: 0, rotation: 0, label: t('furn.cabinet_gray') },
+            { type: FurnitureType.CABINET, variant: 1, rotation: 0, label: t('furn.cabinet_wood') },
+            { type: FurnitureType.TRASH, variant: 0, rotation: 0, label: t('furn.trash') },
             { type: FurnitureType.SCREEN, variant: 0, rotation: 0, label: t('furn.monitor') },
             { type: FurnitureType.WHITEBOARD, variant: 0, rotation: 0, label: t('furn.whiteboard') },
             { type: FurnitureType.PRINTER, variant: 0, rotation: 0, label: t('furn.printer') },
@@ -54,6 +58,9 @@ const BuildMenu: React.FC<BuildMenuProps> = ({ selectedType, selectedVariant, se
             { type: FurnitureType.COUCH, variant: 0, rotation: 0, label: t('furn.couch_blue') },
             { type: FurnitureType.COUCH, variant: 1, rotation: 0, label: t('furn.couch_red') },
             { type: FurnitureType.COUCH, variant: 2, rotation: 0, label: t('furn.couch_green') },
+            { type: FurnitureType.BEAN_BAG, variant: 0, rotation: 0, label: t('furn.beanbag_red') },
+            { type: FurnitureType.BEAN_BAG, variant: 1, rotation: 0, label: t('furn.beanbag_blue') },
+            { type: FurnitureType.CABINET, variant: 2, rotation: 0, label: t('furn.tv_stand') },
             { type: FurnitureType.TABLE_ROUND, variant: 0, rotation: 0, label: t('furn.table_round') },
             { type: FurnitureType.BOOKSHELF, variant: 0, rotation: 0, label: t('furn.bookshelf') },
             { type: FurnitureType.ARCADE, variant: 0, rotation: 0, label: t('furn.arcade') },
@@ -64,12 +71,16 @@ const BuildMenu: React.FC<BuildMenuProps> = ({ selectedType, selectedVariant, se
         label: t('cat.decor'),
         icon: <Palette size={18} />,
         items: [
+            { type: FurnitureType.EASEL, variant: 0, rotation: 0, label: t('furn.easel') },
             { type: FurnitureType.PLANT, variant: 0, rotation: 0, label: t('furn.plant_tall') },
             { type: FurnitureType.PLANT, variant: 1, rotation: 0, label: t('furn.plant_bush') },
+            { type: FurnitureType.PLANT, variant: 2, rotation: 0, label: t('furn.plant_cactus') },
+            { type: FurnitureType.PLANT, variant: 3, rotation: 0, label: t('furn.plant_flower') },
             { type: FurnitureType.LAMP, variant: 0, rotation: 0, label: t('furn.lamp') },
             { type: FurnitureType.RUG, variant: 0, rotation: 0, label: t('furn.rug_red') },
             { type: FurnitureType.RUG, variant: 1, rotation: 0, label: t('furn.rug_blue') },
             { type: FurnitureType.RUG, variant: 2, rotation: 0, label: t('furn.rug_persian') },
+            { type: FurnitureType.RUG, variant: 3, rotation: 0, label: t('furn.rug_check') },
         ]
     },
     {
@@ -79,6 +90,10 @@ const BuildMenu: React.FC<BuildMenuProps> = ({ selectedType, selectedVariant, se
         items: [
             { type: FurnitureType.COFFEE_MAKER, variant: 0, rotation: 0, label: t('furn.coffee') },
             { type: FurnitureType.FOOD, variant: 0, rotation: 0, label: t('furn.food') },
+            { type: FurnitureType.VENDING, variant: 0, rotation: 0, label: t('furn.vending') },
+            { type: FurnitureType.WATER, variant: 0, rotation: 0, label: t('furn.water') },
+            { type: FurnitureType.FRIDGE, variant: 0, rotation: 0, label: t('furn.fridge') },
+            { type: FurnitureType.MICROWAVE, variant: 0, rotation: 0, label: t('furn.microwave') },
             { type: FurnitureType.SINK, variant: 0, rotation: 0, label: t('furn.sink') },
             { type: FurnitureType.TOILET, variant: 0, rotation: 0, label: t('furn.toilet') },
         ]
@@ -96,7 +111,6 @@ const BuildMenu: React.FC<BuildMenuProps> = ({ selectedType, selectedVariant, se
                 <LayoutGrid size={24} className="text-orange-500"/> {t('build.mode')}
             </h2>
             
-            {/* RESET BUTTON */}
             <button
                 onClick={onReset}
                 className="px-3 py-2 rounded-lg flex items-center gap-2 text-xs font-bold transition-colors border bg-amber-500/20 text-amber-400 border-amber-500/50 hover:text-white hover:bg-amber-600"
@@ -162,7 +176,6 @@ const BuildMenu: React.FC<BuildMenuProps> = ({ selectedType, selectedVariant, se
        <div className="flex-1 p-5 overflow-y-auto custom-scrollbar bg-gray-900/50">
            <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
                {currentCategory?.items.map((item, idx) => {
-                   // We ignore rotation in selection match because rotation is now dynamic
                    const isSelected = selectedType === item.type && selectedVariant === item.variant;
                    
                    return (
@@ -203,6 +216,7 @@ const getIconForType = (type: FurnitureType) => {
         case FurnitureType.DESK: return <Table size={32} />;
         case FurnitureType.CHAIR: return <Armchair size={32} />;
         case FurnitureType.COUCH: return <Sofa size={32} />;
+        case FurnitureType.BEAN_BAG: return <Sofa size={32} className="rounded-full"/>;
         case FurnitureType.PLANT: return <Flower2 size={32} />;
         case FurnitureType.LAMP: return <Lightbulb size={32} />;
         case FurnitureType.BOOKSHELF: return <Book size={32} />;
@@ -210,6 +224,13 @@ const getIconForType = (type: FurnitureType) => {
         case FurnitureType.TOILET: return <Box size={32} />;
         case FurnitureType.SINK: return <Box size={32} />;
         case FurnitureType.ARCADE: return <Gamepad2 size={32} />;
+        case FurnitureType.TRASH: return <Trash2 size={32} />;
+        case FurnitureType.VENDING: return <Box size={32} />;
+        case FurnitureType.WATER: return <Box size={32} />;
+        case FurnitureType.FRIDGE: return <Box size={32} />;
+        case FurnitureType.MICROWAVE: return <Box size={32} />;
+        case FurnitureType.CABINET: return <Box size={32} />;
+        case FurnitureType.EASEL: return <Palette size={32} />;
         default: return <Box size={32} />;
     }
 };

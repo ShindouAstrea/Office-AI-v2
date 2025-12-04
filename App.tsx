@@ -29,7 +29,7 @@ import {
 import { useLanguage } from './contexts/LanguageContext';
 import { X, Circle, RotateCcw, XOctagon } from 'lucide-react';
 
-// ... (TicTacToe component remains unchanged, assumed inlined)
+// ... (TicTacToe component remains unchanged)
 interface TicTacToeProps {
   onClose: () => void;
 }
@@ -180,7 +180,7 @@ const App: React.FC = () => {
   const localMicStreamRef = useRef<MediaStream | null>(null);
   const localScreenStreamRef = useRef<MediaStream | null>(null);
   const lastUpdateRef = useRef<number>(0);
-  const peersRef = useRef<Player[]>([]); // Keep track to avoid closure staleness if needed
+  const peersRef = useRef<Player[]>([]); 
 
   // --- HELPER: NOTIFICATIONS ---
   const showNotification = (msg: string, type: 'info' | 'error' = 'info') => {
@@ -307,26 +307,19 @@ const App: React.FC = () => {
   useEffect(() => {
       if (!currentUser) return;
       
-      // Subscribe to active users collection
       const unsubscribe = subscribeToActiveUsers(currentUser.id, (activePeers) => {
-          // We receive the *target* state from Firebase.
-          // We need to merge it with current state to allow GameCanvas to interpolate.
           setPeers(prevPeers => {
-              // Create a map for O(1) lookup
               const prevMap = new Map(prevPeers.map(p => [p.id, p]));
               
               return activePeers.map(serverPeer => {
                   const localPeer = prevMap.get(serverPeer.id);
-                  // If we have this peer locally, keep their CURRENT interpolated position
-                  // but update their TARGET position from server.
                   if (localPeer) {
                       return {
                           ...serverPeer,
-                          position: localPeer.position, // Keep local interpolated pos
-                          targetPosition: serverPeer.position // Update target from server
+                          position: localPeer.position, 
+                          targetPosition: serverPeer.position 
                       };
                   }
-                  // New peer? Start them at their server position
                   return {
                       ...serverPeer,
                       targetPosition: serverPeer.position
@@ -423,8 +416,16 @@ const App: React.FC = () => {
   }, [currentUser?.position, micOn, t]);
 
   const handleJoin = (playerData: Partial<Player>) => {
+      // PERSISTENT ID LOGIC
+      let stableUserId = localStorage.getItem('nexus_user_id');
+      if (!stableUserId) {
+          // Generate and save a new ID if it doesn't exist
+          stableUserId = 'user-' + Math.random().toString(36).substr(2, 9);
+          localStorage.setItem('nexus_user_id', stableUserId);
+      }
+
       const newPlayer = {
-        id: 'user-' + Math.random().toString(36).substr(2, 9), // Better ID generation
+        id: stableUserId, // Use consistent ID
         name: playerData.name || 'User',
         color: playerData.color || AVATAR_COLORS[0],
         position: { x: 20 * TILE_SIZE + TILE_SIZE/2, y: 28 * TILE_SIZE + TILE_SIZE/2 }, 
@@ -459,18 +460,12 @@ const App: React.FC = () => {
     }
   };
   
-  // ... (Remaining handlers: handleSendMessage, handleSelectFurniture, etc.)
+  // ... (Rest of the code remains identical)
+  // Explicitly included to ensure file completeness
   const handleSendMessage = (text: string, roomId: string, attachment?: Attachment) => { if (!currentUser) return; const msg: ChatMessage = { id: Date.now().toString(), roomId, senderId: currentUser.id, senderName: currentUser.name, text, attachment, timestamp: Date.now(), isPrivate: roomId !== 'global' }; persistChatMessage(msg); };
   const handleSelectFurniture = (type: FurnitureType, variant: number, rotation: number) => { setSelectedFurnitureType(type); setSelectedVariant(variant); setSelectedRotation(rotation); if (type !== FurnitureType.SELECT && type !== FurnitureType.DELETE) setSelectedObjectId(null); };
   const handleManualRotate = () => { setSelectedRotation(prev => (prev + 90) % 360); if (selectedObjectId) { setFurniture(prev => { const updated = prev.map(f => (f.id === selectedObjectId ? { ...f, rotation: (f.rotation + 90) % 360 } : f)); persistMapChange(updated); return updated; }); } };
-  
-  const getFurnitureLayer = (type: FurnitureType) => {
-      switch(type) {
-          case FurnitureType.FLOOR: return 'FLOOR'; case FurnitureType.RUG: return 'RUG';
-          case FurnitureType.SCREEN: case FurnitureType.COFFEE_MAKER: case FurnitureType.FOOD: case FurnitureType.LAMP: case FurnitureType.PLANT: case FurnitureType.PRINTER: case FurnitureType.SINK: return 'TOP';
-          case FurnitureType.ARCADE: return 'BASE'; default: return 'BASE';
-      }
-  };
+  const getFurnitureLayer = (type: FurnitureType) => { switch(type) { case FurnitureType.FLOOR: return 'FLOOR'; case FurnitureType.RUG: return 'RUG'; case FurnitureType.SCREEN: case FurnitureType.COFFEE_MAKER: case FurnitureType.FOOD: case FurnitureType.LAMP: case FurnitureType.PLANT: case FurnitureType.PRINTER: case FurnitureType.SINK: return 'TOP'; case FurnitureType.ARCADE: return 'BASE'; default: return 'BASE'; } };
   const getSnapPrecision = (type: FurnitureType) => (type === FurnitureType.WALL || type === FurnitureType.FLOOR) ? 1 : 0.5;
 
   const handlePlaceFurniture = (pixelPos: Position) => {

@@ -11,21 +11,31 @@ export enum FurnitureType {
   PLANT = 'PLANT',
   CHAIR = 'CHAIR',
   FLOOR = 'FLOOR',
-  // New items
+  // Kitchen/Bath
   COFFEE_MAKER = 'COFFEE_MAKER',
   SCREEN = 'SCREEN',
   TOILET = 'TOILET',
   SINK = 'SINK',
   FOOD = 'FOOD',
   TABLE_ROUND = 'TABLE_ROUND',
-  // Additional items for rendering
+  // Decor
   RUG = 'RUG',
   BOOKSHELF = 'BOOKSHELF',
   COUCH = 'COUCH',
   WHITEBOARD = 'WHITEBOARD',
   PRINTER = 'PRINTER',
   LAMP = 'LAMP',
-  ARCADE = 'ARCADE', // New Mini-game object
+  ARCADE = 'ARCADE',
+  // New additions
+  CABINET = 'CABINET',
+  TRASH = 'TRASH',
+  BEAN_BAG = 'BEAN_BAG',
+  EASEL = 'EASEL',
+  VENDING = 'VENDING',
+  WATER = 'WATER',
+  FRIDGE = 'FRIDGE',
+  MICROWAVE = 'MICROWAVE',
+  
   // Tool types
   DELETE = 'DELETE',
   SELECT = 'SELECT'
