@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, getDoc, setDoc, arrayUnion } from 'firebase/firestore';
-import { Furniture, ChatMessage, ChatRoom } from '../types';
+import { getFirestore, doc, getDoc, setDoc, arrayUnion, collection, onSnapshot, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { Furniture, ChatMessage, ChatRoom, Player } from '../types';
 
 // Declare process to avoid TS2580 if @types/node is not loaded
 declare const process: { env: Record<string, string | undefined> };
@@ -31,6 +31,7 @@ try {
 
 const COLLECTIONS = {
   OFFICE: 'virtual_office',
+  SESSIONS: 'active_sessions' // New collection for real-time users
 };
 
 const DOCS = {
@@ -70,7 +71,6 @@ export const saveFurnitureMap = async (furniture: Furniture[]) => {
   
   try {
     const docRef = doc(db, COLLECTIONS.OFFICE, DOCS.MAIN_MAP);
-    // Clean the array to ensure no undefined values sneak in
     const cleanFurniture = cleanObject(furniture);
     await setDoc(docRef, { furniture: cleanFurniture, lastUpdated: Date.now() }, { merge: true });
   } catch (error) {
@@ -80,7 +80,7 @@ export const saveFurnitureMap = async (furniture: Furniture[]) => {
 };
 
 export const loadChatHistory = async (): Promise<ChatMessage[] | null> => {
-    if (!db) return null; // Return null (not empty array) to prevent clearing state on connection fail
+    if (!db) return null;
     try {
         const docRef = doc(db, COLLECTIONS.OFFICE, DOCS.CHAT_LOG);
         const docSnap = await getDoc(docRef);
@@ -88,10 +88,10 @@ export const loadChatHistory = async (): Promise<ChatMessage[] | null> => {
             const data = docSnap.data();
             return Array.isArray(data.messages) ? data.messages : [];
         }
-        return []; // Doc exists but is empty or new
+        return []; 
     } catch (error) {
         console.error("Error loading chat:", error);
-        return null; // Prevent overwrite
+        return null;
     }
 }
 
@@ -99,7 +99,6 @@ export const saveChatMessage = async (message: ChatMessage) => {
     if (!db) throw new Error("Database not connected");
     try {
         const docRef = doc(db, COLLECTIONS.OFFICE, DOCS.CHAT_LOG);
-        // IMPORTANT: Clean object removes 'undefined' fields like optional attachment
         const cleanMessage = cleanObject(message);
         
         await setDoc(docRef, { 
@@ -111,8 +110,6 @@ export const saveChatMessage = async (message: ChatMessage) => {
         throw error;
     }
 }
-
-// --- ROOMS API ---
 
 export const loadChatRooms = async (): Promise<ChatRoom[] | null> => {
     if (!db) return null;
@@ -142,4 +139,49 @@ export const createChatRoom = async (room: ChatRoom) => {
     } catch (error) {
         throw error;
     }
+};
+
+// --- REAL-TIME SESSION MANAGEMENT ---
+
+export const updateUserSession = async (player: Player) => {
+    if (!db) return;
+    try {
+        // Store user in a separate collection 'active_sessions'
+        // Doc ID is the player ID
+        const userRef = doc(db, COLLECTIONS.SESSIONS, player.id);
+        const cleanPlayer = cleanObject(player);
+        // Add a timestamp to detect stale users later if needed
+        await setDoc(userRef, { ...cleanPlayer, lastActive: serverTimestamp() }, { merge: true });
+    } catch (error) {
+        // Fail silently for movement updates to avoid console spam
+    }
+};
+
+export const removeUserSession = async (playerId: string) => {
+    if (!db) return;
+    try {
+        const userRef = doc(db, COLLECTIONS.SESSIONS, playerId);
+        await deleteDoc(userRef);
+    } catch (error) {
+        console.error("Error removing session:", error);
+    }
+};
+
+export const subscribeToActiveUsers = (currentUserId: string, onUpdate: (peers: Player[]) => void) => {
+    if (!db) return () => {};
+
+    const sessionsRef = collection(db, COLLECTIONS.SESSIONS);
+    
+    // Listen to changes in the sessions collection
+    const unsubscribe = onSnapshot(sessionsRef, (snapshot) => {
+        const peers: Player[] = [];
+        snapshot.forEach((doc) => {
+            if (doc.id !== currentUserId) {
+                peers.push(doc.data() as Player);
+            }
+        });
+        onUpdate(peers);
+    });
+
+    return unsubscribe;
 };

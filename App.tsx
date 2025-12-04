@@ -15,7 +15,17 @@ import BuildMenu from './components/BuildMenu';
 import Minimap from './components/Minimap';
 import ScreenShareViewer from './components/ScreenShareViewer';
 import SettingsMenu from './components/SettingsMenu';
-import { loadFurnitureMap, saveFurnitureMap, loadChatHistory, saveChatMessage, loadChatRooms, createChatRoom } from './services/firebase';
+import { 
+    loadFurnitureMap, 
+    saveFurnitureMap, 
+    loadChatHistory, 
+    saveChatMessage, 
+    loadChatRooms, 
+    createChatRoom, 
+    updateUserSession, 
+    removeUserSession, 
+    subscribeToActiveUsers 
+} from './services/firebase';
 import { useLanguage } from './contexts/LanguageContext';
 import { X, Circle, RotateCcw, XOctagon } from 'lucide-react';
 
@@ -181,6 +191,8 @@ const App: React.FC = () => {
   const notificationTimeoutRef = useRef<number | null>(null);
   const localMicStreamRef = useRef<MediaStream | null>(null);
   const localScreenStreamRef = useRef<MediaStream | null>(null);
+  // For throttling updates
+  const lastUpdateRef = useRef<number>(0);
 
   // --- HELPER: NOTIFICATIONS ---
   const showNotification = (msg: string, type: 'info' | 'error' = 'info') => {
@@ -317,6 +329,7 @@ const App: React.FC = () => {
   
   const fetchData = async () => {
       try {
+          // Removed automatic peers update here, now handled by listener
           const [remoteFurniture, remoteChat, remoteRooms] = await Promise.all([
               loadFurnitureMap(),
               loadChatHistory(),
@@ -352,7 +365,7 @@ const App: React.FC = () => {
     init();
   }, []);
 
-  // Polling
+  // Polling for Chat and Rooms (Furniture mostly static or updated via snapshot ideally, but polling okay for now)
   useEffect(() => {
       if (!isDataLoaded) return;
       const interval = setInterval(() => {
@@ -524,28 +537,62 @@ const App: React.FC = () => {
 
 
   const handleJoin = (playerData: Partial<Player>) => {
-    setCurrentUser({
-      id: 'me',
-      name: playerData.name || 'User',
-      color: playerData.color || AVATAR_COLORS[0],
-      position: { x: 20 * TILE_SIZE + TILE_SIZE/2, y: 28 * TILE_SIZE + TILE_SIZE/2 }, 
-      targetPosition: { x: 20 * TILE_SIZE, y: 28 * TILE_SIZE },
-      isTalking: false,
-      avatarId: 1,
-      room: 'OPEN_SPACE',
-      status: 'En línea'
-    });
+      const newPlayer = {
+        id: 'me-' + Date.now(), // Ensure unique ID for session
+        name: playerData.name || 'User',
+        color: playerData.color || AVATAR_COLORS[0],
+        position: { x: 20 * TILE_SIZE + TILE_SIZE/2, y: 28 * TILE_SIZE + TILE_SIZE/2 }, 
+        targetPosition: { x: 20 * TILE_SIZE, y: 28 * TILE_SIZE },
+        isTalking: false,
+        avatarId: 1,
+        room: 'OPEN_SPACE',
+        status: 'En línea'
+      };
+      setCurrentUser(newPlayer);
+      updateUserSession(newPlayer);
   };
+
+  // SUBSCRIBE TO PEERS
+  useEffect(() => {
+      if (!currentUser) return;
+      
+      const unsubscribe = subscribeToActiveUsers(currentUser.id, (activePeers) => {
+          setPeers(activePeers);
+      });
+      
+      // Cleanup on unmount (e.g. tab close)
+      const cleanup = () => {
+          removeUserSession(currentUser.id);
+          unsubscribe();
+      };
+
+      window.addEventListener('beforeunload', cleanup);
+      return () => {
+          cleanup();
+          window.removeEventListener('beforeunload', cleanup);
+      }
+  }, [currentUser]);
+
 
   const handleUpdateStatus = (newStatus: string) => {
     if (currentUser) {
-      setCurrentUser({ ...currentUser, status: newStatus });
+      const updated = { ...currentUser, status: newStatus };
+      setCurrentUser(updated);
+      updateUserSession(updated); // Sync status
     }
   };
 
   const handleMove = (newPos: Position) => {
     if (currentUser) {
-        setCurrentUser(prev => prev ? { ...prev, position: newPos } : null);
+        const updatedUser = { ...currentUser, position: newPos };
+        setCurrentUser(updatedUser);
+        
+        // Throttle Firebase updates (e.g., every 100ms)
+        const now = Date.now();
+        if (now - lastUpdateRef.current > 100) {
+            updateUserSession(updatedUser);
+            lastUpdateRef.current = now;
+        }
     }
   };
 
